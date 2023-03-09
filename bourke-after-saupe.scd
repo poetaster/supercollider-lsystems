@@ -20,7 +20,7 @@ rules:
 s.waitForBoot({
     var player;
     var lsys = LSystem(
-        iterations:4,
+        iterations:3,
         axiom:"VZFFF",
         constants:Set[],
         rules:(
@@ -34,10 +34,10 @@ s.waitForBoot({
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-            \acceptablenotes : Set["c3", "d3", "e3", "g3", "a3", "c4", "d4", "e4", "g4", "a4"],
+			\acceptablenotes : Set["c3", "d3", "f#3", "g3", "a3", "c4", "d4", "f#4", "g4", "a4"],
             \patternnotes : ["c3"],
             \transpose : 0,
-            \tempo : 8,
+            \tempo : 16,
         ),
         actions:(
             // whenever you encounter an F, extend the list of played notes
@@ -62,7 +62,7 @@ s.waitForBoot({
                 [glob, loc];
             }, nil],
             // whenever you encounter an X, remove first note from the played notes
-            'Z' : [{ | glob, loc |
+            'Y' : [{ | glob, loc |
                 "remove first note".postln;
                 if (glob[\patternnotes].size > 1) {
                     // keep at least one note
@@ -74,8 +74,8 @@ s.waitForBoot({
                 [glob, loc];
             }, nil],
             // whenever you encounter a Y, change tempo (randomly) )
-            'W' : [{ | glob, loc |
-                glob[\tempo] = (glob[\tempo] * [0.3, 1.2, 1.4, 1.7, 2, 0.5, 3].choose.debug("tempo factor")).clip(8,32);
+            'X' : [{ | glob, loc |
+                glob[\tempo] = (glob[\tempo] * [1.2, 0.4, 1.4, 0.8, 1.6, 0.8, 2.4].choose.debug("tempo factor")).clip(8,32);
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -113,10 +113,17 @@ s.waitForBoot({
 		Out.ar(bus:out, channelsArray:(env*(amp*snd).tanh));
 	}).add;
 
+	SynthDef(\blips, {arg out = 0, freq = 440, numharm = 10, att = 0.01, rel = 1, amp = 0.2, pan = 0.3;
+		var snd, env;
+		env = Env.perc(att, rel, amp).kr(doneAction: 2);
+		snd = BPF.ar(LeakDC.ar(Mix(Blip.ar([freq, freq*1.01], numharm, env))), 440, 0.5);
+		Out.ar(out, Pan2.ar(snd, pan));
+	}).add;
+
     s.sync;
 
     fork {
-        var skipfirstidx = 0; // increase to skip more steps at the beginning
+        var skipfirstidx = 4; // increase to skip more steps at the beginning
         var sz = lsys.getCalculatedString.size();
         lsys.getCalculatedString.do({
             | chr, idx |
@@ -138,21 +145,22 @@ s.waitForBoot({
                         Padd(\midinote, Pfunc({transposition}),
                             Panola.new(
                                 notation:interp.globalState()[\patternnotes].join(" ").debug("notes1"),
-                                dur_default:interp.globalState()[\tempo]
+                                dur_default:interp.globalState()[\tempo]*0.8,
+								vol_default:0.9
                             ).asPbind(\kalimba)
                         ),
                         Padd(\midinote, Pfunc({transposition2}),
                             Panola.new(
                                 notation:interp2.globalState()[\patternnotes].join(" ").debug("notes2"),
-                                dur_default:interp2.globalState()[\tempo]*2,
+                                dur_default:interp2.globalState()[\tempo],
                                 playdur_default:1,
-                                vol_default:0.1
-                            ).asPbind(\flute),
+                                vol_default:0.2
+                            ).asPbind(\blips),
                         )
                     ]),
                     repeats);
                 if (player.notNil) { player.stop; };
-                player = pattern.play();
+				player = pattern.play();
                 1.wait;
                 if (idx == (sz-1)) {
                     "*** ABOUT TO FINISH ***".postln;
@@ -165,65 +173,3 @@ s.waitForBoot({
 
 
 
-// The same LSystem can also be interpreted graphically
-(
-var win = Window("Example Graphical LSystem", bounds:Rect(0,0,1000,700));
-var view = UserView(win, win.view.bounds.insetBy(50,50));
-var lsys = LSystem(
-    iterations:3,
-        axiom:"Y",
-        constants:Set[],
-        rules:(\X : "X[-F+FF][+F-FF]FX",
-		\Y : "YFX[+Y][-Y]"));
-var interp = LSystemInterpreter(
-    lsystem:lsys,
-    actions:(
-        'F' : [{
-            | globalstate, symbolstate |
-            globalstate[\pos] = globalstate[\pos] + (globalstate[\dir]*globalstate[\len]);
-            Pen.lineTo(globalstate[\pos]);
-            [globalstate, symbolstate];
-        }, nil],
-        'X' : [{
-            | globalstate, symbolstate |
-            globalstate[\pos] = globalstate[\pos] + (globalstate[\dir]*globalstate[\len]);
-            Pen.lineTo(globalstate[\pos]);
-            [globalstate, symbolstate];
-        }, nil],
-        'Y' : [{
-            | globalstate, symbolstate |
-            globalstate[\pos] = globalstate[\pos] + (globalstate[\dir]*globalstate[\len]);
-            Pen.lineTo(globalstate[\pos]);
-            [globalstate, symbolstate];
-        }, nil],
-        '-' : [{| globalstate, symbolstate |
-            globalstate[\dir] = (globalstate[\dir].rotate(globalstate[\angle].degrad));
-            [globalstate, symbolstate];
-        }, nil],
-        '+' : [{| globalstate, symbolstate |
-            globalstate[\dir] = (globalstate[\dir].rotate(globalstate[\angle].neg.degrad));
-            [globalstate, symbolstate];
-        }, nil]
-    )
-);
-
-view.resize = 5;
-view.background_(Color.white);
-view.drawFunc_({
-    |userview|
-    Pen.use {
-        interp.setGlobalState( globalstate:(
-            \dir : 0@1.neg,
-            \pos : (win.view.bounds.width/2)@(win.view.bounds.height/5),
-            \len : 3,
-            \angle: 90 ) );
-        Pen.width = 2;
-        Pen.strokeColor_(Color.black);
-        Pen.fillColor_(Color.black);
-        Pen.moveTo(interp.globalstate[\pos]);
-        interp.run();
-        Pen.stroke;
-    };
-});
-win.front;
-)
