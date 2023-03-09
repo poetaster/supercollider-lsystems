@@ -2,7 +2,7 @@
 
 The simplified form of axiom and rules (without color):
 
-[P. Bourke after Saupe](bourke-after-saupe.svg)
+![P. Bourke after Saupe](bourke-after-saupe.svg)
 
 ```
 axiom: VZFFF
