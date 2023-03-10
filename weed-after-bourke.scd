@@ -31,7 +31,8 @@ s.waitForBoot({
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\acceptablenotes : Set["g3", "g3_16", "a3", "c4", "d4_8", "f#4_16", "g4", "g4_16", "a4"],
+			//\acceptablenotes : Set["g3", "g3_16", "a3", "c4", "d4_8", "f#4_16", "g4", "g4_16", "a4"],
+			\acceptablenotes : Set["g3", "g3_16", "ais3_16", "c4", "c4_16", "g4_16"],
             \patternnotes : ["g3"],
             \transpose : 0,
             \tempo : 16,
@@ -72,7 +73,7 @@ s.waitForBoot({
             }, nil],
             // whenever you encounter a Y, change tempo (randomly) )
             'X' : [{ | glob, loc |
-                glob[\tempo] = (glob[\tempo] * [1.6, 0.4, 3.2, 0.8, 0.2 ].choose.debug("tempo factor")).clip(8,32);
+                glob[\tempo] = (glob[\tempo] * [1.6, 0.4, 2.4, 0.8, 3.2, 0.2 ].choose.debug("tempo factor")).clip(8,32);
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -110,7 +111,7 @@ s.waitForBoot({
 		Out.ar(bus:out, channelsArray:(env*(amp*snd).tanh));
 	}).add;
 
-	SynthDef(\blips, {arg out = 0, freq = 440, numharm = 10, att = 0.01, rel = 1, amp = 0.2, pan = 0.3;
+	SynthDef(\blips, {arg out = 0, freq = 440, numharm = 11, att = 0.01, rel = 1, amp = 0.2, pan = 0.3;
 		var snd, env;
 		env = Env.perc(att, rel, amp).kr(doneAction: 2);
 		snd = BPF.ar(LeakDC.ar(Mix(Blip.ar([freq, freq*1.01], numharm, env))), 440, 0.4);
