@@ -34,7 +34,7 @@ s.waitForBoot({
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\acceptablenotes : Set["c3", "d3", "f#3", "g3", "a3", "c4", "d4", "f#4", "g4", "a4"],
+			\acceptablenotes : Set["c3_16", "d3_16", "g3_16", "a3_16", "c4_16", "d4_16", "g4_8", "a4_8"],
             \patternnotes : ["c3"],
             \transpose : 0,
             \tempo : 16,
@@ -75,7 +75,7 @@ s.waitForBoot({
             }, nil],
             // whenever you encounter a Y, change tempo (randomly) )
             'X' : [{ | glob, loc |
-                glob[\tempo] = (glob[\tempo] * [1.2, 0.4, 1.4, 0.8, 1.6, 0.8, 2.4].choose.debug("tempo factor")).clip(8,32);
+                glob[\tempo] = (glob[\tempo] * [1.2, 0.4, 1.4, 0.8, 1.6, 0.8, 1.0].choose.debug("tempo factor")).clip(8,32);
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -83,6 +83,61 @@ s.waitForBoot({
     );
 
     var interp2 = interp.deepCopy();
+
+	SynthDef("waveguideFlute", { arg scl = 0.2, freq = 440, ipress = 0.9, ibreath = 0.09, ifeedbk1 = 0.4, ifeedbk2 = 0.4, dur = 0.5, gate = 0.5, amp = 1;
+
+		var kenv1, kenv2, kenvibr, kvibr, sr, cr, block;
+		var poly, signalOut, ifqc;
+		var aflow1, asum1, asum2, afqc, atemp1, ax, apoly, asum3, avalue, atemp2, aflute1;
+		var fdbckArray;
+
+		sr = SampleRate.ir;
+		cr = ControlRate.ir;
+		block = cr.reciprocal;
+
+		ifqc = freq;
+
+		// noise envelope
+		kenv1 = EnvGen.kr(Env.new(
+			[ 0.0, 1.1 * ipress, ipress, ipress, 0.0 ], [ 0.06, 0.2, dur - 0.46, 0.2 ], 'linear' )
+		);
+		// overall envelope
+		kenv2 = EnvGen.kr(Env.new(
+			[ 0.0, amp, amp, 0.0 ], [ 0.1, dur - 0.02, 0.1 ], 'linear' ), doneAction: 2
+		);
+		// vibrato envelope
+		kenvibr = EnvGen.kr(Env.new( [ 0.0, 0.0, 1, 1, 0.0 ], [ 0.5, 0.5, dur - 1.5, 0.5 ], 'linear') );
+
+		// create air flow and vibrato
+		aflow1 = LFClipNoise.ar( sr, kenv1 );
+		kvibr = SinOsc.ar( 5, 0, 0.1 * kenvibr );
+
+		asum1 = ( ibreath * aflow1 ) + kenv1 + kvibr;
+		afqc = ifqc.reciprocal - ( asum1/20000 ) - ( 9/sr ) + ( ifqc/12000000 ) - block;
+
+		fdbckArray = LocalIn.ar( 1 );
+
+		aflute1 = fdbckArray;
+		asum2 = asum1 + ( aflute1 * ifeedbk1 );
+
+		//ax = DelayL.ar( asum2, ifqc.reciprocal * 0.5, afqc * 0.5 );
+		ax = DelayC.ar( asum2, ifqc.reciprocal - block * 0.5, afqc * 0.5 - ( asum1/ifqc/cr ) + 0.001 );
+
+		apoly = ax - ( ax.cubed );
+		asum3 = apoly + ( aflute1 * ifeedbk2 );
+		avalue = LPF.ar( asum3, 2000 );
+
+		aflute1 = DelayC.ar( avalue, ifqc.reciprocal - block, afqc );
+
+		fdbckArray = [ aflute1 ];
+
+		LocalOut.ar( fdbckArray );
+
+		signalOut = avalue;
+
+		OffsetOut.ar( 0, [ signalOut * kenv2, signalOut * kenv2 ] );
+
+	}).add;
 
     SynthDef(\kalimba, {
         |out = 0, freq = 440, amp = 0.1, mix = 0.1|
@@ -145,16 +200,16 @@ s.waitForBoot({
                         Padd(\midinote, Pfunc({transposition}),
                             Panola.new(
                                 notation:interp.globalState()[\patternnotes].join(" ").debug("notes1"),
-                                dur_default:interp.globalState()[\tempo]*0.8,
-								vol_default:0.9
+                                dur_default:interp.globalState()[\tempo],
+								vol_default:1.2
                             ).asPbind(\kalimba)
                         ),
                         Padd(\midinote, Pfunc({transposition2}),
                             Panola.new(
                                 notation:interp2.globalState()[\patternnotes].join(" ").debug("notes2"),
-                                dur_default:interp2.globalState()[\tempo],
-                                playdur_default:1,
-                                vol_default:0.2
+                                dur_default:interp2.globalState()[\tempo]*0.5,
+                                playdur_default:0.5,
+                                vol_default:0.1
                             ).asPbind(\blips),
                         )
                     ]),
