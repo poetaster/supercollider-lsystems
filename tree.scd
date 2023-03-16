@@ -28,7 +28,7 @@ s.waitForBoot({
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\acceptablenotes : Set["b3_16", "dis3_8", "ais3_8", "b4_16", "dis4_16", "f4_8", "ais4_16"],
+			\acceptablenotes : Set["b3_16", "d#3_8", "a#3_8", "b4_16", "d#4_16", "f4_8", "a#4_16"],
 			\patternnotes : ["b3_16"],
             \transpose : 0,
             \tempo : 8,

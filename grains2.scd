@@ -29,9 +29,8 @@ s.waitForBoot({
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\acceptablenotes : Set[48.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2]], //Set["g3", "g3_16", "a3", "c4", "d4_8", "f#4_16", "g4", "g4_16", "a4"],
-			//\acceptablenotes : Set["dis3_16", "g3_16", "gis3_16", "ais3_16", "c4_8", "c4_16", "dis4_16", "g4_16"],
-            \patternnotes : ["dis3_16"],
+			\acceptablenotes : Set["d#3_16", "g3_16", "g#3_16", "a#3_16", "c4_8", "c4_16", "d#4_16", "g4_16"],
+            \patternnotes : ["d#3_16"],
             \transpose : 0,
             \tempo : 16,
         ),
@@ -130,6 +129,7 @@ s.waitForBoot({
 		src = src * doneActionEnv * 0.5; // make sure it releases node after the end.
 	    Out.ar(out, Pan2.ar(src, pan));
 	}).add;
+
 	SynthDef("waveguideFlute", { arg scl = 0.2, freq = 440, ipress = 0.9, ibreath = 0.09, ifeedbk1 = 0.4, ifeedbk2 = 0.4, dur = 0.5, gate = 0.5, amp = 1;
 
 		var kenv1, kenv2, kenvibr, kvibr, sr, cr, block;
@@ -210,13 +210,13 @@ s.waitForBoot({
                             Panola.new(
                                 notation:interp.globalState()[\patternnotes].join(" ").debug("notes1"),
                                 dur_default:interp.globalState()[\tempo],
-								vol_default:0.05
+								vol_default:0.07
                             ).asPbind(\risset)
                         ),
                         Padd(\midinote, Pfunc({transposition2}),
                             Panola.new(
                                 notation:interp2.globalState()[\patternnotes].join(" ").debug("notes2"),
-                                dur_default:interp2.globalState()[\tempo]*0.2,
+                                dur_default:interp2.globalState()[\tempo] * 0.5,
                                 playdur_default:1,
                                 vol_default:1
                             ).asPbind(\kalimba),
