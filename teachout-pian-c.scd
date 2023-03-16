@@ -220,8 +220,8 @@ s.waitForBoot({
                                 notation:interp2.globalState()[\patternnotes].join(" ").debug("notes2"),
                                 dur_default:interp2.globalState()[\tempo] * 0.5,
                                 playdur_default:1,
-                                vol_default:1
-                            ).asPbind(\kalimba),
+                                vol_default:0.2
+                            ).asPbind(\flute),
                         )
                     ]),
                     repeats);
