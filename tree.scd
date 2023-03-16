@@ -28,10 +28,10 @@ s.waitForBoot({
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\acceptablenotes : Set["dis3", "gis3_16", "ais3", "c4_16", "gis4_16", "ais4"],
-			\patternnotes : ["dis3"],
+			\acceptablenotes : Set["b3_16", "dis3_8", "ais3_8", "b4_16", "dis4_16", "f4_8", "ais4_16"],
+			\patternnotes : ["b3_16"],
             \transpose : 0,
-            \tempo : 16,
+            \tempo : 8,
         ),
         actions:(
             // whenever you encounter an F, extend the list of played notes
@@ -69,7 +69,7 @@ s.waitForBoot({
             }, nil],
             // whenever you encounter a Y, change tempo (randomly) )
             'X' : [{ | glob, loc |
-                glob[\tempo] = (glob[\tempo] * [0.2, 0.4, 1.2, 0.8, 1.0].choose.debug("tempo factor")).clip(8,32);
+                glob[\tempo] = (glob[\tempo] * [0.4, 0.8, 1.0, 1.6, 2.4].choose.debug("tempo factor")).clip(4,32);
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -116,8 +116,8 @@ s.waitForBoot({
 		Out.ar(out, Pan2.ar(snd, pan));
 	}).add;
 
-	SynthDef (\sc303 , {  arg  out=0, freq=440, wave=1, ctf=100, res=0.4,
-		sus=0.8, dec=0.8, env=1000, gate=1, vol=0.05;
+	SynthDef (\sc303 , {  arg  out=0, freq=440, wave=10, ctf=100, res=0.2,
+		sus=0.5, dec=0.8, env=1000, gate=1, vol=0.05;
 		var  filEnv, volEnv, waves;
 		volEnv =  EnvGen .ar( Env .new([10e-10, 1, 1, 10e-10], [0.01, sus, dec],  'exp' ), gate, doneAction:2);
 		filEnv =  EnvGen .ar( Env .new([10e-10, 1, 10e-10], [0.01, dec],  'exp' ), gate);
@@ -151,13 +151,13 @@ s.waitForBoot({
                             Panola.new(
                                 notation:interp.globalState()[\patternnotes].join(" ").debug("notes1"),
                                 dur_default:interp.globalState()[\tempo],
-								vol_default:0.1
+								vol_default:0.3
                             ).asPbind(\blips)
                         ),
                         Padd(\midinote, Pfunc({transposition2}),
                             Panola.new(
                                 notation:interp2.globalState()[\patternnotes].join(" ").debug("notes2"),
-                                dur_default:interp2.globalState()[\tempo]*0.5,
+                                dur_default:interp2.globalState()[\tempo],
                                 playdur_default:1,
                                 vol_default:0.3
                             ).asPbind(\sc303),

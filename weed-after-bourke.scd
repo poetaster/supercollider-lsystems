@@ -212,7 +212,7 @@ s.waitForBoot({
                             Panola.new(
                                 notation:interp.globalState()[\patternnotes].join(" ").debug("notes1"),
                                 dur_default:interp.globalState()[\tempo],
-								vol_default:0.2
+								vol_default:0.1
                             ).asPbind(\risset)
                         ),
                         Padd(\midinote, Pfunc({transposition2}),
