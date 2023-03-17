@@ -5,11 +5,11 @@ The simplified form of axiom and rules (without color):
 ```
 axiom: F
 rules:
-  F => FMNOMBxPNMyO
-  M => e[-F++F++]
-  N => d[+F--F--]
-  O => c++F--F
-  P => d--F++F
+  F => FMNOMBPNMyO
+  M => [-F++F++]
+  N => [+F--F--]
+  O => ++F--F
+  P => --F++F
 ```
 
 ![Another Aquatic](another-aquatic.svg)

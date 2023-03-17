@@ -11,7 +11,7 @@ rules:
  Z => -FX-FY-FX
 ```
 
-![Peano-c Flower](poetastere-piano-c.svg)
+![Peano-c Flower](poetaster-pianoc-flower.svg)
 
 ## link to render 
 

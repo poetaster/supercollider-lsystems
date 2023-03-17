@@ -6,8 +6,8 @@ The simplified form of axiom and rules (without color):
  // Grains 2, after P. Bourke
 axiom: Y                     
 rules:                       
-  X => cX[-FF-F]g[+FF+F]dFX  
-  Y => eYFX[+Y][-Y]XFY       
+  X => X[-FF-F][+FF+F]FX  
+  Y => YFX[+Y][-Y]XFY       
 ```
 
 ![Grains too](grains2.svg)

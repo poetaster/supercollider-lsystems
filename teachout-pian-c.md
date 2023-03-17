@@ -10,7 +10,7 @@ rules:
  Y => FY
 ```
 
-![Teachout Peano-c](teachout-pean-c.svg)
+![Teachout Peano-c](teachout-pian-c.svg)
 
 ## link to render 
 
