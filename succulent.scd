@@ -4,60 +4,75 @@ Quarks.install("https://github.com/shimpe/panola");
 Quarks.install("https://github.com/shimpe/sc-lsystem");
 )
 
-/*
-tree
-axiom: X
-rules:
- F => FF
- X => F-[[X]+X]+F[+FX]-X
-*/
 
+/*
+// poetasters succulent 1
+axiom: A
+rules:
+ A =>[FY]A[FXA]
+ F => XF
+ X => FY
+ Y => [F+F+F][F-F-F]
+*/
 
 (
 s.waitForBoot({
     var player;
     var lsys = LSystem(
         iterations:3,
-        axiom:"X",
+        axiom:"A",
         constants:Set[],
         rules:(
-			\F : "FF",
-			\X : "F-[[X]+X]+F[+FX]-X",
+			\A : "[FY]A[FXA]",
+			\F : "XF",
+			\X : "FY",
+			\Y : "[F+F+F][F-F-F]"
+
 	));
 
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\acceptablenotes : Set["b3_16", "d#3_8", "a#3_8", "b4_16", "d#4_16", "f4_8", "a#4_16"],
-			\patternnotes : ["b3_16"],
+			\acceptablenotes : Set["c3_16", "d3_16.", "g-3_16", "a-3_8.", "c4_16."],
+            \patternnotes : ["c3_16"],
             \transpose : 0,
-            \tempo : 8,
+            \tempo : 16,
         ),
         actions:(
             // whenever you encounter an F, extend the list of played notes
             'F' : [{ | glob, loc |
+
                 // extend list notes being played (using some randomness :) )
                 glob[\patternnotes] = glob[\patternnotes].add(glob[\acceptablenotes].choose.debug("add new note"));
+				// for this case, succulent, we have to limit the number of notes
+				// or the saw synth will freak out
+				if (glob[\patternnotes].size > 16) {
+                    // keep at least one note
+                    //glob[\patternnotes] = glob[\patternnotes].reverse;
+                    glob[\patternnotes].pop;
+                    //glob[\patternnotes] = glob[\patternnotes].reverse;
+                };
+                // always
 
                 // always return state at the end
                 [glob, loc];
             }, nil],
             // whenever you encounter a +, transpose up
             '+': [{ | glob, loc |
-                glob[\transpose] = (glob[\transpose] + [1,2,3,4].choose.debug("transpose up")).clip(-12,12);
+                glob[\transpose] = (glob[\transpose] + [1,2,3,4].choose.debug("transpose up")).clip(-8,8);
                 // always return state at the end
                 [glob, loc];
             }, nil],
             // whenever you encounter a -, transpose down
             '-': [{ | glob, loc |
-                //"transpose down".postln;
-                glob[\transpose] = (glob[\transpose] - [1,2,3,4].choose.debug("transpose down")).clip(-12, 12);
+                "transpose down".postln;
+                glob[\transpose] = (glob[\transpose] - [1,2,3,4].choose.debug("transpose down")).clip(-8, 8);
                 // always return state at the end
                 [glob, loc];
             }, nil],
             // whenever you encounter an X, remove first note from the played notes
             'X' : [{ | glob, loc |
-                //"remove first note".postln;
+                "remove first note".postln;
                 if (glob[\patternnotes].size > 1) {
                     // keep at least one note
                     glob[\patternnotes] = glob[\patternnotes].reverse;
@@ -68,8 +83,8 @@ s.waitForBoot({
                 [glob, loc];
             }, nil],
             // whenever you encounter a Y, change tempo (randomly) )
-            'X' : [{ | glob, loc |
-                glob[\tempo] = (glob[\tempo] * [0.4, 0.8, 1.0, 1.6, 2.4].choose.debug("tempo factor")).clip(4,32);
+            'Y' : [{ | glob, loc |
+                glob[\tempo] = (glob[\tempo] * [0.4, 0.8, 1.0].choose.debug("tempo factor")).clip(8,32);
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -77,8 +92,6 @@ s.waitForBoot({
     );
 
     var interp2 = interp.deepCopy();
-
-
 
     SynthDef(\kalimba, {
         |out = 0, freq = 440, amp = 0.1, mix = 0.1|
@@ -99,8 +112,9 @@ s.waitForBoot({
         Out.ar(out, Pan2.ar(snd, 0, amp));
     }).add;
 
+
     SynthDef(\flute, {
-		| out = 0, freq = 440, amp = 1.0, a = 0.2, r = 0.4|
+		| out = 0, freq = 440, amp = 1.0, a = 0.1, r = 0.1|
 		//var fmod = 1; // clean
 		//var fmod = LFCub.kr(freq:1/12).range(1, LFNoise2.kr(freq:12.0).range(1,1.1)); // tone deaf flute
 		var fmod = LFCub.kr(freq:1/12).range(1, LFNoise2.kr(freq:12.0).range(1,1.02)); // flute-like sound
@@ -109,15 +123,8 @@ s.waitForBoot({
 		Out.ar(bus:out, channelsArray:(env*(amp*snd).tanh));
 	}).add;
 
-	SynthDef(\blips, {arg out = 0, freq = 440, numharm = 10, att = 0.01, rel = 1, amp = 0.2, pan = 0.3;
-		var snd, env;
-		env = Env.perc(att, rel, amp).kr(doneAction: 2);
-		snd = BPF.ar(LeakDC.ar(Mix(Blip.ar([freq, freq*1.01], numharm, env))), 440, 0.5);
-		Out.ar(out, Pan2.ar(snd, pan));
-	}).add;
-
-	SynthDef (\sc303 , {  arg  out=0, freq=440, wave=10, ctf=100, res=0.2,
-		sus=0.5, dec=0.8, env=1000, gate=1, vol=0.05;
+	SynthDef (\sc303 , {  arg  out=0, freq=450, wave=10, ctf=100, res=0.2,
+		sus=0.7, dec=0.8, env=1000, gate=1, vol=0.1;
 		var  filEnv, volEnv, waves;
 		volEnv =  EnvGen .ar( Env .new([10e-10, 1, 1, 10e-10], [0.01, sus, dec],  'exp' ), gate, doneAction:2);
 		filEnv =  EnvGen .ar( Env .new([10e-10, 1, 10e-10], [0.01, dec],  'exp' ), gate);
@@ -125,7 +132,49 @@ s.waitForBoot({
 		Out .ar(out,  RLPF .ar(  Select .ar(wave, waves), ctf + (filEnv * env), res).dup * vol);
 	}).add;
 
-	SynthDef("plucking", {arg amp = 0.1, freq = 440, decay = 3, coef = 0.1;
+	SynthDef(\blips, {arg out = 0, freq = 440, numharm = 11, att = 0.01, rel = 0.7, amp = 0.2, pan = 0.3;
+		var snd, env;
+		env = Env.perc(att, rel, amp).kr(doneAction: 2);
+		snd = BPF.ar(LeakDC.ar(Mix(Blip.ar([freq, freq*1.01], numharm, env))), 440, 0.4);
+		Out.ar(out, Pan2.ar(snd, pan));
+	}).add;
+
+SynthDef(\fatsaw,
+	{
+		arg freq=440, amp=0.3, fat=0.0033, ffreq=2000, atk=0.001, dec=0.1, sus=0.2, rls=0.05,gate=0.5;
+
+		var f1,f2,f3,f4,synth;
+
+		f1=freq-(freq*fat);
+		f2=freq-(freq*fat/2);
+		f3=freq+(freq*fat/2);
+		f4=freq+(freq*fat);
+
+		synth = LFSaw.ar([f1,f2,f3,f4],[0,0.001,0.002,0.004,0.008]);
+		synth = synth * EnvGen.kr(Env([0,1,sus,0],[atk,dec,rls],'lin',2),gate,doneAction:0);
+		synth=Splay.ar(synth,0.7);
+		synth=RLPF.ar(synth,ffreq*Linen.kr(gate,0.1,0.4,0.2,0),0.4);
+		Out.ar([0,1],synth*amp);
+},[0.1,0.3,4,2]).add;
+
+
+
+		SynthDef(\risset, {|out = 0, pan = 0, freq = 400, amp = 0.05, att = 0.005, rel = 1, gate = 1,vibFreq=7, vibAmp=0.1,vibAdd=0.5|
+		var amps = #[1, 0.67, 1, 1.8, 2.67, 1.67, 1.46, 1.33, 1.33, 1, 1.33];
+		var durs = #[1, 0.9, 0.65, 0.55, 0.325, 0.35, 0.25, 0.2, 0.15, 0.1, 0.075];
+		var frqs = #[0.56, 0.56, 0.92, 0.92, 1.19, 1.7, 2, 2.74, 3, 3.76, 4.07];
+		var dets = #[0, 1, 0, 1.7, 0, 0, 0, 0, 0, 0, 0];
+		var doneActionEnv = EnvGen.ar(Env.linen(0, att+rel, 0), gate, doneAction: 2);
+		var src = Mix.fill(11, {|i|
+			var env = EnvGen.ar(Env.perc(att, rel * durs[i], amps[i], att.explin(0.005, 4, -4.5, 0)), gate);
+			SinOsc.ar(freq*frqs[i] + dets[i], 0, amp*env);
+		});
+        src = src * SinOsc.kr(vibFreq*15, mul:vibAmp, add:vibAdd);
+		src = src * doneActionEnv * 0.5; // make sure it releases node after the end.
+	    Out.ar(out, Pan2.ar(src, pan));
+	}).add;
+
+	SynthDef("plucking", {arg amp = 0.1, freq = 440, decay = 2, coef = 0.1;
 
 		var env, snd;
 		env = EnvGen.kr(Env.linen(0, decay, 0), doneAction: 2);
@@ -166,15 +215,16 @@ s.waitForBoot({
                             Panola.new(
                                 notation:interp.globalState()[\patternnotes].join(" ").debug("notes1"),
                                 dur_default:interp.globalState()[\tempo],
-								vol_default:0.3
-                            ).asPbind(\blips)
+								vol_default:0.1,
+								playdur_default:0.9,
+                            ).asPbind(\plucking)
                         ),
                         Padd(\midinote, Pfunc({transposition2}),
                             Panola.new(
                                 notation:interp2.globalState()[\patternnotes].join(" ").debug("notes2"),
-                                dur_default:interp2.globalState()[\tempo],
-                                playdur_default:1,
-                                vol_default:0.3
+                                dur_default:interp2.globalState()[\tempo] * 0.5,
+                                playdur_default:0.5,
+                                vol_default:0.2
                             ).asPbind(\sc303),
                         )
                     ]),
@@ -193,3 +243,4 @@ s.waitForBoot({
 
 
 
+d

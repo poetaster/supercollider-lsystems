@@ -33,7 +33,7 @@ s.waitForBoot({
         globalstate:(
 			\acceptablenotes : Set["d#3_16", "g3_16", "g#3_16", "a#3_16", "c4_8", "c4_16", "d#4_16", "g4_16"],
             \patternnotes : ["d#3_16"],
-            \transpose : 0,
+            \transpose : 4,
             \tempo : 16,
         ),
         actions:(
