@@ -13,6 +13,8 @@ rules:
 ```
 
 ![Succulent](succulent.svg)
+![Succulent Supercollider](succulent.scd)
+![Succulent Supercollider 2](succulent-2.scd)
 
 ## link to render 
 
