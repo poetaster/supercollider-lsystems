@@ -36,9 +36,10 @@ s.waitForBoot({
         lsystem:lsys,
         globalstate:(
 			\acceptablenotes : 48.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2, 2*16/15, 2*5/4, 2*4/3, 2*3/2],
+
             \patternnotes : [261,245],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
-            \transpose : -2,
+            \transpose : -3,
 			\lag: 0.0,
             \tempo : 0.2,
 			\dur : 0.2
@@ -58,16 +59,17 @@ s.waitForBoot({
             }, nil],
             // whenever you encounter a +, transpose up
             '+': [{ | glob, loc |
-				glob[\transpose] = (glob[\transpose] + [1,2,3].choose).clip(-8,8);
-				glob[\tempo] = [0.8, 0.2, 0.4, 1, 0.4, 0.2].choose;
+				glob[\transpose] = (glob[\transpose] + [1,2,3].choose).clip(-9,9);
+
                 // always return state at the end
                 [glob, loc];
             }, nil],
             // whenever you encounter a -, transpose down
             '-': [{ | glob, loc |
                 //"transpose down".postln;
-                glob[\transpose] = (glob[\transpose] - [1,2,3].choose).clip(-8, 8);
-				glob[\tempo] = [0.8, 0.2, 0.4, 1, 0.4, 0.2].choose;
+                glob[\transpose] = (glob[\transpose] - [1,2,3].choose).clip(-9, 9);
+
+				glob[\tempo] = [0.8, 0.2, 0.4, 0.2].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -89,6 +91,7 @@ s.waitForBoot({
             'Y' : [{ | glob, loc |
 				glob[\lag] = (glob[\lag] - 0.1).clip(0,2);
 				//glob[\patternnotes] = glob[\patternnotes].add(glob[\customnotes].choose.debug("add new custom"));
+				glob[\tempo] = [0.8, 0.2, 0.4, 0.2].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -130,7 +133,7 @@ s.waitForBoot({
 		Out.ar(out, Pan2.ar(SinOsc.ar(u + 1 * freq, 0, amp * env), pan));
 	}).add;
 
-	SynthDef("plucking", { arg amp = 0.1, freq = 440, decay = 2, coef = 0.3;
+	SynthDef("plucking", { arg amp = 0.1, freq = 440, decay = 2, coef = 0.2;
 		var env, snd;
 		env = EnvGen.kr(Env.linen(0, decay, 0), doneAction: 2);
 		snd = Pluck.ar(
@@ -143,10 +146,8 @@ s.waitForBoot({
 		Out.ar(0, [snd, snd]);
 	}).add;
 
-
-
     s.sync;
-
+    // up the rate a bit
 	TempoClock.default = TempoClock.new(1.5);
 
 	fork {
@@ -156,7 +157,7 @@ s.waitForBoot({
 
 		Pbindef(\p, \instrument, \plucking, \amp, 0.1);
 		//Pbindef(\p, \instrument, \Pdefhelp, \amp, 0.1);
-		Pbindef(\q, \instrument, \kalimba, \amp, 0.8);
+		Pbindef(\q, \instrument, \kalimba, \amp, 1);
 		//q = Pbindef(\q, \instrument, \blips);
 
         lsys.getCalculatedString.do({
@@ -177,8 +178,8 @@ s.waitForBoot({
                 trans = interp.globalState()[\transpose].debug("trans");
                 trans2 = interp2.globalState()[\transpose].debug("trans2");
 
-				n1 = Pseq(interp.globalState()[\patternnotes].debug("notes1"),repeats);
-				n2 = Pseq(interp2.globalState()[\patternnotes].debug("notes2"),repeats);
+				n1 = Pseq(interp.globalState()[\patternnotes].debug("notes1"));
+				n2 = Pseq(interp2.globalState()[\patternnotes].debug("notes2"));
 				l = interp.globalState()[\lag].debug("lag");
 				l2 = interp2.globalState()[\lag].debug("lag2");
 				t = interp.globalState()[\tempo].debug("tempo");
@@ -186,8 +187,8 @@ s.waitForBoot({
 
 				pattern =
 					Ppar([
-						Pbindef(\p, \dur, t, \freq, n1, \legato, l, \mtranspose, trans),
-						Pbindef(\q, \dur, t2, \freq, n2, \legato, l*0.5, \mtranspose, trans2),
+						Pbindef(\p, \dur, t, \freq, n1, \legato, l, \transpose, trans),
+						Pbindef(\q, \dur, t2, \freq, n2, \legato, l*0.5, \transpose, trans2),
 
 				]);
 
