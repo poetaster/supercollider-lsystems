@@ -13,8 +13,13 @@ rules:
 ```
 
 ![Succulent](succulent.svg)
+
+
+# supercollider audio rendering
+
 ![Succulent Supercollider](succulent.scd)
-![Succulent Supercollider 2](succulent-2.scd)
+
+![Succulent Supercollider 2 Panola](succulent-2.scd)
 
 ## link to render 
 

@@ -131,7 +131,7 @@ s.waitForBoot({
 	}).add;
 
     s.sync;
-
+	TempoClock.default = TempoClock.new(1.5);
     fork {
         var skipfirstidx = 4; // increase to skip more steps at the beginning
         var sz = lsys.getCalculatedString.size();

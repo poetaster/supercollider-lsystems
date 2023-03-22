@@ -3,8 +3,8 @@
 axiom: F
 rules:
   F -> FF-[XY]+[XY]
-  X -> +cFY
-  Y -> -dFX
+  X -> +FY
+  Y -> -FX
 */
 
 (
@@ -22,7 +22,7 @@ s.waitForBoot({
 	));
     // sitar
 	// 48.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2, 2*16/15, 2*5/4, 2*4/3, 2*3/2];
-    //
+    // 28/7, 36/35, 5/4, 4/3, 6/5,10/9
 
     var interp = LSystemInterpreter(
         lsystem:lsys,
@@ -73,13 +73,14 @@ s.waitForBoot({
             'X' : [{ | glob, loc |
                 //"transpose down".postln;
                 glob[\transpose] = (glob[\transpose] - [1,2,3].choose).clip(-5, 9);
+				glob[\lag] = (glob[\lag] + 0.2).clip(0,2);
                 // always return state at the end
                 [glob, loc];
             }, nil],
 			//[0.1, 0.2, 0.3, 0.4, 0.5].choose;
             // whenever you encounter a Y, change tempo (randomly) )
             'Y' : [{ | glob, loc |
-				glob[\lag] = (glob[\lag] - 0.1).clip(0,2);
+				glob[\lag] = (glob[\lag] - 0.2).clip(0,2);
 				//glob[\patternnotes] = glob[\patternnotes].add(glob[\customnotes].choose.debug("add new custom"));
 				glob[\tempo] = [0.8, 0.2, 0.4, 0.2].choose;
 				glob[\transpose] = (glob[\transpose] + [1,2,3].choose).clip(-5, 9);
@@ -92,10 +93,10 @@ s.waitForBoot({
     var interp2 = interp.deepCopy();
 
     SynthDef(\kalimba, {
-        |out = 0, freq = 440, amp = 2, mix = 0.2|
+        |out = 0, freq = 440, amp = 2, mix = 0.2, rel = 1.4|
         var snd, click;
         // Basic tone is a SinOsc
-        snd = SinOsc.ar(freq) * EnvGen.ar(Env.perc(0.03, Rand(0.7, 1.4), 1, -7), doneAction: 2);
+        snd = SinOsc.ar(freq) * EnvGen.ar(Env.perc(0.03, rel, 1, -7), doneAction: 2);
         snd = HPF.ar( LPF.ar(snd, 380), 120);
         // The "clicking" sounds are modeled with a bank of resonators excited by enveloped white noise
         click = DynKlank.ar(`[
@@ -110,10 +111,10 @@ s.waitForBoot({
         Out.ar(out, Pan2.ar(snd, 0, amp));
     }).add;
 
-	SynthDef(\blips, {arg out = 0, freq = 440, numharm = 11, att = 0.01, rel = 0.7, amp = 1, pan = 0.3;
+	SynthDef(\blips, {arg out = 0, freq = 440, harms = 11, att = 0.01, rel = 0.7, amp = 1, pan = 0.3;
 		var snd, env;
 		env = Env.perc(att, rel, amp).kr(doneAction: 2);
-		snd = BPF.ar(LeakDC.ar(Mix(Blip.ar([freq, freq*1.01], numharm, env))), 440, 0.4);
+		snd = BPF.ar(LeakDC.ar(Mix(Blip.ar([freq, freq*1.01], harms, env))), 440, 0.4);
 		Out.ar(out, Pan2.ar(snd, pan));
 	}).add;
 
@@ -140,7 +141,7 @@ s.waitForBoot({
     s.sync;
 
 	// up the rate a bit
-	TempoClock.default = TempoClock.new(1.5);
+	TempoClock.default = TempoClock.new(1.25);
 
 	fork {
         var skipfirstidx = 0; // increase to skip more steps at the beginning
@@ -148,9 +149,9 @@ s.waitForBoot({
 		var p, q, pattern;
 
 
-		Pbindef(\r, \instrument, \blips, \amp, 0.5, \sustain, 0.9);
-		Pbindef(\p, \instrument, \kalimba, \amp, 1.1);
-		Pbindef(\q, \instrument, \plucking, \amp, 0.08, \rel, 0.7);
+		Pbindef(\r, \instrument, \blips, \amp, 0.5, \rel, 0.9);
+		Pbindef(\p, \instrument, \kalimba, \amp, 0.7);
+		Pbindef(\q, \instrument, \plucking, \amp, 0.07, \decay, 2);
 		//Pbindef(\p, \instrument, \plucking, \amp, 0.1);
 		//q = Pbindef(\q, \instrument, \blips);
 
@@ -160,7 +161,7 @@ s.waitForBoot({
             var transposedpattern;
             var trans;
             var trans2;
-			var n1, n2, l, l2, t, t2;
+			var n1, n2, l, l2, t, t2, trel,harms;
 
             ("*** PART" + (idx+1) + "OF" + sz + "***").postln;
             interp.step(idx);
@@ -173,17 +174,20 @@ s.waitForBoot({
                 trans2 = interp2.globalState()[\transpose].debug("trans2");
 
 				n1 = Pseq(interp.globalState()[\patternnotes].debug("n1"),repeats);
-				n2 = Pseq(interp2.globalState()[\patternnotes].debug("n2"),repeats);
+				n2 = Pseq( trans.abs * interp2.globalState()[\patternnotes].debug("n2"),repeats);
 				l = interp.globalState()[\lag].debug("lag");
 				l2 = interp2.globalState()[\lag].debug("lag2");
 				t = interp.globalState()[\tempo].debug("tempo");
                 t2 = interp2.globalState()[\tempo].debug("tempo2");
 
+				trel = t + t2 + 1.2; // for longer releases
+				harms = (9 + [trans,trans2].choose ).clip(4,20).debug("harms");
 				pattern =
 					Ppar([
-						Pbindef(\q, \dur, t, \freq, n1, \legato, l, \transpose, trans + 1),
-						Pbindef(\p, \dur, t2, \freq, n2, \legato, l, \transpose, trans2 + 3),
-					    Pbindef(\r, \dur, t2, \freq, n1, \legato, l, \transpose, trans + 1)
+
+					Pbindef(\q, \dur, t, \freq, n1, \legato, l, \transpose, trans, \decay, trel),
+					Pbindef(\p, \dur, t2, \freq, n2, \legato, l, \transpose, trans2 + 2, \rel, 2 + t),
+					Pbindef(\r, \dur, t2, \freq, n1, \legato, l, \transpose, trans + 1, \rel, t + t2, \harms, harms)
 
 				]);
 

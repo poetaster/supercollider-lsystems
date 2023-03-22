@@ -1,10 +1,3 @@
-// if you have never done so, run the following code first
-(
-Quarks.install("https://github.com/shimpe/panola");
-Quarks.install("https://github.com/shimpe/sc-lsystem");
-)
-
-
 /*
 // poetasters succulent 1
 axiom: A

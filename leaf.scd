@@ -176,7 +176,7 @@ SynthDef(\fatsaw,
 			coef: coef);
 		Out.ar(0, [snd, snd]);
 	}).add;
-
+	TempoClock.default = TempoClock.new(1.5);
     s.sync;
 
     fork {
