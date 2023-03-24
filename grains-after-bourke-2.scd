@@ -23,14 +23,13 @@ s.waitForBoot({
     // 28/7, 36/35, 5/4, 4/3, 6/5,10/9
     // 28/7, 36/35, 5/4, 4/3, 6/5,10/9
 	// below is archytas enharmonic
+	// carnatic [1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 27/16, 9/5, 15/8, 2]
 
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-
-			\acceptablenotes : 52.midicps * [ 28/7, 36/35, 5/4, 4/3, 6/5,10/9, 2, 2*28/7,2*36/35,2*5/4],
-
-            \patternnotes : 48.midicps * [28/7, 36/35, 5/4],
+			\acceptablenotes : 57.midicps * [1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 27/16, 9/5, 15/8, 2],
+            \patternnotes : 57.midicps * [16/15, 1, 5/4],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
             \transpose : 0,
 			\counter : 0,
@@ -49,7 +48,6 @@ s.waitForBoot({
             '+': [{ | glob, loc |
                 // extend list notes being played (using some randomness :) )
                 glob[\patternnotes] = glob[\patternnotes].add(glob[\acceptablenotes].choose);
-				glob[\patternnotes] = glob[\patternnotes].add(glob[\acceptablenotes].choose);
 				// limit pattern to 8 notes.
 				if (glob[\patternnotes].size > 9) {
                     glob[\patternnotes].pop;
@@ -60,11 +58,10 @@ s.waitForBoot({
             // whenever you encounter a -, transpose down
             '-': [{ | glob, loc |
                 //"remove first note".postln;
-                if (glob[\patternnotes].size > 1) {
-                    // keep at least one note
-                    glob[\patternnotes] = glob[\patternnotes].reverse;
+				// limit pattern to 8 notes.
+				glob[\patternnotes] = glob[\patternnotes].addFirst(glob[\acceptablenotes].choose);
+				if (glob[\patternnotes].size > 9) {
                     glob[\patternnotes].pop;
-                    glob[\patternnotes] = glob[\patternnotes].reverse;
                 };
 
                 // always return state at the end
@@ -73,7 +70,7 @@ s.waitForBoot({
             // whenever you encounter an X, remove first note from the played notes
             'X' : [{ | glob, loc |
                 //"transpose down".postln;
-                glob[\transpose] = [-1,-2,-1,-3,-1].choose;
+                glob[\transpose] = [3/4,1/2].choose;
 				glob[\lag] = (glob[\lag] + 0.3).clip(0,2);
                 // always return state at the end
                 [glob, loc];
@@ -84,7 +81,7 @@ s.waitForBoot({
 				glob[\lag] = (glob[\lag] - 0.1).clip(0,2);
 				//glob[\patternnotes] = glob[\patternnotes].add(glob[\customnotes].choose.debug("add new custom"));
 				glob[\tempo] = [0.8, 0.2, 0.4, 0.2].choose;
-				glob[\transpose] = [1,2,1,3,1].choose;
+				glob[\transpose] = [1,2,3].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -114,11 +111,11 @@ s.waitForBoot({
     }).add;
 
     SynthDef(\flute, {
-		| out = 0, freq = 440, amp = 1.0, a = 0.1, r = 0.1|
+		| out = 0, freq = 440, amp = 1.0, att = 0.1, rel = 0.1|
 		//var fmod = 1; // clean
 		//var fmod = LFCub.kr(freq:1/12).range(1, LFNoise2.kr(freq:12.0).range(1,1.1)); // tone deaf flute
 		var fmod = LFCub.kr(freq:1/12).range(1, LFNoise2.kr(freq:12.0).range(1,1.02)); // flute-like sound
-		var env = EnvGen.ar(Env.perc(a, r), levelScale:0.5, doneAction:2);
+		var env = EnvGen.ar(Env.perc(att, rel), levelScale:0.5, doneAction:2);
 		var snd = SinOsc.ar(freq * fmod)!2;
 		Out.ar(bus:out, channelsArray:(env*(amp*snd).tanh));
 	}).add;
@@ -145,9 +142,23 @@ s.waitForBoot({
 	    Out.ar(out, Pan2.ar(src, pan));
 	}).add;
 
+	SynthDef("plucking", { arg amp = 0.1, freq = 440, rel = 2, coef = 0.2;
+		var env, snd;
+		env = EnvGen.kr(Env.linen(0, rel, 0), doneAction: 2);
+		snd = Pluck.ar(
+			in: WhiteNoise.ar(amp),
+			trig: Impulse.kr(0),
+			maxdelaytime: 0.1,
+			delaytime: freq.reciprocal,
+			decaytime: rel,
+			coef: coef);
+		Out.ar(0, [snd, snd]);
+	}).add;
+
+
     s.sync;
 	// up the rate a bit
-	TempoClock.default = TempoClock.new(1.1);
+	TempoClock.default = TempoClock.new(1.2);
 
 	fork {
         var skipfirstidx = 0; // increase to skip more steps at the beginning
@@ -155,10 +166,11 @@ s.waitForBoot({
 		var p, q, pattern;
 
 
-		Pbindef(\r, \instrument, \blips, \amp, 0.3, \rel, 0.3);
-		Pbindef(\p, \instrument, \kalimba, \amp, 1.1, \rel, 0.4);
-		Pbindef(\q, \instrument, \risset, \amp, 0.07, \rel, 1);
-		//Pbindef(\p, \instrument, \plucking, \amp, 0.1);
+		Pbindef(\r, \instrument, \blips, \amp, 0.5, \rel, 0.3);
+		Pbindef(\q, \instrument, \risset, \amp, 0.05, \rel, 0.1);
+		Pbindef(\p, \instrument, \kalimba, \amp, 1.3, \rel, 0.4);
+
+		//Pbindef(\r, \instrument, \plucking, \amp, 0.5);
 		//q = Pbindef(\q, \instrument, \blips);
 
         lsys.getCalculatedString.do({
@@ -179,23 +191,22 @@ s.waitForBoot({
                 trans = interp.globalState()[\transpose].debug("trans");
                 trans2 = interp2.globalState()[\transpose].debug("trans2");
 
-				n1 = Pseq(interp.globalState()[\patternnotes].debug("n1"));
+				n1 = Pseq(trans * interp.globalState()[\patternnotes].debug("n1"));
 				n2 = Pseq(trans2 * interp2.globalState()[\patternnotes].debug("n2"));
 				l = interp.globalState()[\lag].debug("lag");
 				l2 = interp2.globalState()[\lag].debug("lag2");
 				t = interp.globalState()[\tempo].debug("tempo");
                 t2 = interp2.globalState()[\tempo].debug("tempo2");
 				trel = t + t2; // for longer releases
-                harms = (10 + [trans,trans2].choose ).clip(4,20).debug("harms");
-				amps = 0.3;
-				if ( harms < 10 ) {
-					amps = 0.1;
-				};
+                harms = ( 9 + [trans,trans2].choose ).clip(4,20).debug("harms");
+				amps = 0.4;
+				if ( harms < 10 ) { amps = 0.25; };
 				pattern =
 					Ppar([
-						Pbindef(\q, \dur, t, \freq, n1, \legato, l, \transpose, trans +1, ),
-						Pbindef(\p, \dur, t2, \freq, n1, \legato, l, \rel, trel),
-					    Pbindef(\r, \dur, t, \freq, n2, \legato, l, \rel, trel, \harms, harms, \amp, amps)
+					    Pbindef(\r, \dur, t, \freq, n2, \legato, l, \rel, trel, \harms, harms, \amp, amps),
+					if (trel > 0.4 ) {
+						Pbindef(\q, \dur, t2, \freq, n1, \legato, l, \rel, trel + 0.5 )};,
+						Pbindef(\p, \dur, trel, \freq, n2, \legato, l, \rel, trel),
 
 				]);
 

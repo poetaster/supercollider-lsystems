@@ -28,11 +28,10 @@ s.waitForBoot({
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\acceptablenotes : 48.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2, 2*16/15, 2*5/4, 2*4/3, 2*3/2],
-
-            \patternnotes : [261,245],
+			\acceptablenotes : 60.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2],
+			\patternnotes : 60.midicps * [4/3, 16/15, 5/4,],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
-            \transpose : -3,
+            \transpose : 1,
 			\lag: 0.0,
             \tempo : 0.2,
 			\dur : 0.2
@@ -40,42 +39,38 @@ s.waitForBoot({
         actions:(
             // whenever you encounter an F, extend the list of played notes
             'F' : [{ | glob, loc |
-
-                // extend list notes being played (using some randomness :) )
-                glob[\patternnotes] = glob[\patternnotes].add(glob[\acceptablenotes].choose);
-				// limit pattern to 8 notes.
-				if (glob[\patternnotes].size > 5) {
-                    glob[\patternnotes].pop;
-                };
+				glob[\tempo] = [0.8, 0.2, 0.4, 0.2].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
             // whenever you encounter a +, transpose up
             '+': [{ | glob, loc |
-				glob[\transpose] = (glob[\transpose] + [1,2,3].choose).clip(-9,9);
-
+                // extend list notes being played (using some randomness :) )
+                glob[\patternnotes] = glob[\patternnotes].add(glob[\acceptablenotes].choose);
+				// limit pattern to 8 notes.
+				if (glob[\patternnotes].size > 9) {
+                    glob[\patternnotes].pop;
+                };
                 // always return state at the end
                 [glob, loc];
             }, nil],
             // whenever you encounter a -, transpose down
             '-': [{ | glob, loc |
-                //"transpose down".postln;
-                glob[\transpose] = (glob[\transpose] - [1,2,3].choose).clip(-9, 9);
+                //"remove first note".postln;
+				// limit pattern to 8 notes.
+				glob[\patternnotes] = glob[\patternnotes].addFirst(glob[\acceptablenotes].choose);
+				if (glob[\patternnotes].size > 9) {
+                    glob[\patternnotes].pop;
+                };
 
-				glob[\tempo] = [0.8, 0.2, 0.4, 0.2].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
             // whenever you encounter an X, remove first note from the played notes
             'X' : [{ | glob, loc |
-                //"remove first note".postln;
-                if (glob[\patternnotes].size > 1) {
-                    // keep at least one note
-                    glob[\patternnotes] = glob[\patternnotes].reverse;
-                    glob[\patternnotes].pop;
-                    glob[\patternnotes] = glob[\patternnotes].reverse;
-                };
-				glob[\lag] = (glob[\lag] + 0.1).clip(0,2);
+                //"transpose down".postln;
+                glob[\transpose] = [3/4,1/2,1/4].choose;
+				glob[\lag] = (glob[\lag] + 0.3).clip(0,2);
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -85,6 +80,7 @@ s.waitForBoot({
 				glob[\lag] = (glob[\lag] - 0.1).clip(0,2);
 				//glob[\patternnotes] = glob[\patternnotes].add(glob[\customnotes].choose.debug("add new custom"));
 				glob[\tempo] = [0.8, 0.2, 0.4, 0.2].choose;
+				glob[\transpose] = [1,2,3].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -94,10 +90,10 @@ s.waitForBoot({
     var interp2 = interp.deepCopy();
 
     SynthDef(\kalimba, {
-        |out = 0, freq = 440, amp = 2, mix = 0.2|
+        |out = 0, freq = 440, amp = 2, mix = 0.2, rel=1.4|
         var snd, click;
         // Basic tone is a SinOsc
-        snd = SinOsc.ar(freq) * EnvGen.ar(Env.perc(0.03, Rand(0.7, 1.4), 1, -7), doneAction: 2);
+        snd = SinOsc.ar(freq) * EnvGen.ar(Env.perc(0.03, rel, 1, -7), doneAction: 2);
         snd = HPF.ar( LPF.ar(snd, 380), 120);
         // The "clicking" sounds are modeled with a bank of resonators excited by enveloped white noise
         click = DynKlank.ar(`[
@@ -126,7 +122,7 @@ s.waitForBoot({
 		Out.ar(out, Pan2.ar(SinOsc.ar(u + 1 * freq, 0, amp * env), pan));
 	}).add;
 
-	SynthDef("plucking", { arg amp = 0.1, freq = 440, decay = 2, coef = 0.2;
+	SynthDef("plucking", { arg amp = 0.1, freq = 440, decay = 2, coef = 0.3;
 		var env, snd;
 		env = EnvGen.kr(Env.linen(0, decay, 0), doneAction: 2);
 		snd = Pluck.ar(
@@ -141,16 +137,17 @@ s.waitForBoot({
 
     s.sync;
     // up the rate a bit
-	TempoClock.default = TempoClock.new(1.5);
+	TempoClock.default = TempoClock.new(1.25);
 
 	fork {
         var skipfirstidx = 0; // increase to skip more steps at the beginning
         var sz = lsys.getCalculatedString.size();
 		var p, q, pattern;
 
-		Pbindef(\p, \instrument, \plucking, \amp, 0.1);
-		//Pbindef(\p, \instrument, \Pdefhelp, \amp, 0.1);
-		Pbindef(\q, \instrument, \kalimba, \amp, 1);
+		Pbindef(\p, \instrument, \plucking, \amp, 0.08, \decay, 2);
+		Pbindef(\q, \instrument, \kalimba, \amp, 1.4, \rel, 1.4);
+		Pbindef(\r, \instrument, \Pdefhelp, \amp, 0.2, \rel, 0.2);
+
 		//q = Pbindef(\q, \instrument, \blips);
 
         lsys.getCalculatedString.do({
@@ -159,7 +156,7 @@ s.waitForBoot({
             var transposedpattern;
             var trans;
             var trans2;
-			var n1, n2, l, l2, t, t2;
+			var n1, n2, l, l2, t, t2, ts;
 
             ("*** PART" + (idx+1) + "OF" + sz + "***").postln;
             interp.step(idx);
@@ -171,18 +168,19 @@ s.waitForBoot({
                 trans = interp.globalState()[\transpose].debug("trans");
                 trans2 = interp2.globalState()[\transpose].debug("trans2");
 
-				n1 = Pseq(interp.globalState()[\patternnotes].debug("notes1"));
-				n2 = Pseq(interp2.globalState()[\patternnotes].debug("notes2"));
+				n1 = Pseq(trans * interp.globalState()[\patternnotes].debug("n1"));
+				n2 = Pseq(trans2 * interp2.globalState()[\patternnotes].debug("n2"));
+
 				l = interp.globalState()[\lag].debug("lag");
 				l2 = interp2.globalState()[\lag].debug("lag2");
 				t = interp.globalState()[\tempo].debug("tempo");
                 t2 = interp2.globalState()[\tempo].debug("tempo2");
-
-				pattern =
-					Ppar([
-						Pbindef(\p, \dur, t, \freq, n1, \legato, l, \transpose, trans),
-						Pbindef(\q, \dur, t2, \freq, n2, \legato, l*0.5, \transpose, trans2),
-
+				ts = t + t2;
+				//if ( trans || trans2  ) { amps = 0.2; };
+				pattern = Ppar([
+					Pbindef(\p, \dur, t, \freq, n1, \legato, l, \decay, ts + 1.4, \amp, (t2/4).clip(0.001, 0.09)),
+					Pbindef(\q, \dur, ts, \freq, n2, \legato, l,  \rel, t2 + t ),
+					Pbindef(\r, \dur, t2, \freq, n1, \legato, l,  \rel, t2, \amp, (t/4).clip(0.02, 0.08) )
 				]);
 
                 if (player.notNil) { player.stop; };

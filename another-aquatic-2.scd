@@ -26,14 +26,15 @@ s.waitForBoot({
 	));
     // sitar
 	// 48.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2, 2*16/15, 2*5/4, 2*4/3, 2*3/2];
-    //
+    //	\acceptablenotes : 57.midicps * [1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 27/16, 9/5, 15/8, 2],
+    //  \patternnotes : 57.midicps * [1, 16/15, 5/4],
 
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\acceptablenotes : 36.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2, 2*16/15, 2*5/4, 2*4/3, 2*3/2],
+			\acceptablenotes : 56.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2],
 
-			\patternnotes : 48.midicps * [1, 16/15],
+			\patternnotes : 56.midicps * [1, 16/15,4/3],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
             \transpose : 0,
 			\counter : 0,
@@ -52,9 +53,8 @@ s.waitForBoot({
             '+': [{ | glob, loc |
                 // extend list notes being played (using some randomness :) )
                 glob[\patternnotes] = glob[\patternnotes].add(glob[\acceptablenotes].choose);
-				glob[\patternnotes] = glob[\patternnotes].add(glob[\acceptablenotes].choose);
 				// limit pattern to 8 notes.
-				if (glob[\patternnotes].size > 17) {
+				if (glob[\patternnotes].size > 9) {
                     glob[\patternnotes].pop;
                 };
                 // always return state at the end
@@ -63,11 +63,10 @@ s.waitForBoot({
             // whenever you encounter a -, transpose down
             '-': [{ | glob, loc |
                 //"remove first note".postln;
-                if (glob[\patternnotes].size > 1) {
-                    // keep at least one note
-                    glob[\patternnotes] = glob[\patternnotes].reverse;
+				// limit pattern to 8 notes.
+				glob[\patternnotes] = glob[\patternnotes].addFirst(glob[\acceptablenotes].choose);
+				if (glob[\patternnotes].size > 9) {
                     glob[\patternnotes].pop;
-                    glob[\patternnotes] = glob[\patternnotes].reverse;
                 };
 
                 // always return state at the end
@@ -76,7 +75,7 @@ s.waitForBoot({
             // whenever you encounter an X, remove first note from the played notes
             'X' : [{ | glob, loc |
                 //"transpose down".postln;
-                glob[\transpose] = [-1,-2,-1,-3,-4,-1].choose;
+                glob[\transpose] = [3/4,1/2].choose;
 				glob[\lag] = (glob[\lag] + 0.3).clip(0,2);
                 // always return state at the end
                 [glob, loc];
@@ -87,7 +86,7 @@ s.waitForBoot({
 				glob[\lag] = (glob[\lag] - 0.1).clip(0,2);
 				//glob[\patternnotes] = glob[\patternnotes].add(glob[\customnotes].choose.debug("add new custom"));
 				glob[\tempo] = [0.8, 0.2, 0.4, 0.2].choose;
-				glob[\transpose] =  [1,2,1,3,4,1].choose;
+				glob[\transpose] = [1,2,3].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -199,8 +198,8 @@ s.waitForBoot({
 				pattern =
 					Ppar([
 					 Pbindef(\r, \dur, t2, \freq, n2, \legato, l, \rel, trel, \harms, harms),
-					 Pbindef(\p, \dur, t, \freq, n1, \legato, l, \rel, trel + 0.6),
-					 Pbindef(\q, \dur, t2, \freq, n1, \legato, l, \decay, trel + 0.8)
+					 Pbindef(\p, \dur, trel, \freq, n1, \legato, l, \rel, trel + 0.6),
+					 Pbindef(\q, \dur, t, \freq, n1, \legato, l, \decay, trel + 0.8)
 
 				]);
 

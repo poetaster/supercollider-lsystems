@@ -24,14 +24,15 @@ s.waitForBoot({
 	// 48.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2, 2*16/15, 2*5/4, 2*4/3, 2*3/2];
     // 28/7, 36/35, 5/4, 4/3, 6/5,10/9
 
+
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
 			\acceptablenotes : 48.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2, 2*16/15, 2*5/4, 2*4/3, 2*3/2],
 
-            \patternnotes : [261,245],
+			\patternnotes : 48.midicps * [5/4, 16/15],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
-            \transpose : 0,
+            \transpose : 1,
 			\counter : 0,
 			\lag: 0.0,
             \tempo : 0.2,
@@ -48,7 +49,6 @@ s.waitForBoot({
             '+': [{ | glob, loc |
                 // extend list notes being played (using some randomness :) )
                 glob[\patternnotes] = glob[\patternnotes].add(glob[\acceptablenotes].choose);
-				glob[\patternnotes] = glob[\patternnotes].add(glob[\acceptablenotes].choose);
 				// limit pattern to 8 notes.
 				if (glob[\patternnotes].size > 9) {
                     glob[\patternnotes].pop;
@@ -59,11 +59,10 @@ s.waitForBoot({
             // whenever you encounter a -, transpose down
             '-': [{ | glob, loc |
                 //"remove first note".postln;
-                if (glob[\patternnotes].size > 1) {
-                    // keep at least one note
-                    glob[\patternnotes] = glob[\patternnotes].reverse;
+				// limit pattern to 8 notes.
+				glob[\patternnotes] = glob[\patternnotes].addFirst(glob[\acceptablenotes].choose);
+				if (glob[\patternnotes].size > 9) {
                     glob[\patternnotes].pop;
-                    glob[\patternnotes] = glob[\patternnotes].reverse;
                 };
 
                 // always return state at the end
@@ -72,7 +71,7 @@ s.waitForBoot({
             // whenever you encounter an X, remove first note from the played notes
             'X' : [{ | glob, loc |
                 //"transpose down".postln;
-                glob[\transpose] = (glob[\transpose] - [1,2,3].choose).clip(-5, 9);
+                glob[\transpose] = [1,2,3].choose;
 				glob[\lag] = (glob[\lag] + 0.2).clip(0,2);
                 // always return state at the end
                 [glob, loc];
@@ -83,7 +82,7 @@ s.waitForBoot({
 				glob[\lag] = (glob[\lag] - 0.2).clip(0,2);
 				//glob[\patternnotes] = glob[\patternnotes].add(glob[\customnotes].choose.debug("add new custom"));
 				glob[\tempo] = [0.8, 0.2, 0.4, 0.2].choose;
-				glob[\transpose] = (glob[\transpose] + [1,2,3].choose).clip(-5, 9);
+				glob[\transpose] = [1/2,3/4].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -149,9 +148,10 @@ s.waitForBoot({
 		var p, q, pattern;
 
 
-		Pbindef(\r, \instrument, \blips, \amp, 0.5, \rel, 0.9);
-		Pbindef(\p, \instrument, \kalimba, \amp, 0.7);
+		Pbindef(\p, \instrument, \kalimba, \amp, 1);
 		Pbindef(\q, \instrument, \plucking, \amp, 0.07, \decay, 2);
+		Pbindef(\r, \instrument, \blips, \amp, 0.5, \rel, 0.9);
+
 		//Pbindef(\p, \instrument, \plucking, \amp, 0.1);
 		//q = Pbindef(\q, \instrument, \blips);
 
@@ -161,7 +161,7 @@ s.waitForBoot({
             var transposedpattern;
             var trans;
             var trans2;
-			var n1, n2, l, l2, t, t2, trel,harms;
+			var n1, n2, l, l2, t, t2, trel,harms,transf;
 
             ("*** PART" + (idx+1) + "OF" + sz + "***").postln;
             interp.step(idx);
@@ -172,9 +172,11 @@ s.waitForBoot({
                 if (idx == (sz-1)) { repeats = 2; }; // don't repeat last pattern indefinitely
                 trans = interp.globalState()[\transpose].debug("trans");
                 trans2 = interp2.globalState()[\transpose].debug("trans2");
+				//transf = (trans/trans2).debug("transf");
 
-				n1 = Pseq(interp.globalState()[\patternnotes].debug("n1"),repeats);
-				n2 = Pseq( trans.abs * interp2.globalState()[\patternnotes].debug("n2"),repeats);
+				n1 = Pseq( trans.abs * interp.globalState()[\patternnotes].debug("n1"));
+				n2 = Pseq( trans2.abs * interp2.globalState()[\patternnotes].debug("n2"));
+
 				l = interp.globalState()[\lag].debug("lag");
 				l2 = interp2.globalState()[\lag].debug("lag2");
 				t = interp.globalState()[\tempo].debug("tempo");
@@ -182,12 +184,11 @@ s.waitForBoot({
 
 				trel = t + t2 + 1.2; // for longer releases
 				harms = (9 + [trans,trans2].choose ).clip(4,20).debug("harms");
-				pattern =
-					Ppar([
 
-					Pbindef(\q, \dur, t, \freq, n1, \legato, l, \transpose, trans, \decay, trel),
-					Pbindef(\p, \dur, t2, \freq, n2, \legato, l, \transpose, trans2 + 2, \rel, 2 + t),
-					Pbindef(\r, \dur, t2, \freq, n1, \legato, l, \transpose, trans + 1, \rel, t + t2, \harms, harms)
+				pattern =Ppar([
+					Pbindef(\p, \dur, t2, \freq, n2, \legato, l, \rel, 2 + t),
+					Pbindef(\q, \dur, t, \freq, n1, \legato, l, \decay, trel),
+					Pbindef(\r, \dur, t2, \freq, n1, \legato, l, \rel, t + t2, \harms, harms)
 
 				]);
 
