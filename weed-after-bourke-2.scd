@@ -28,9 +28,10 @@ s.waitForBoot({
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\acceptablenotes : 48.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2, 2*16/15, 2*5/4, 2*4/3, 2*3/2],
-
-			\patternnotes : 48.midicps * [5/4, 16/15],
+			\acceptablenotes : 58.midicps * [1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 27/16, 9/5, 15/8, 2],
+			\up : 58.midicps * [1, 9/8, 5/4, 3/2, 27/16],
+			\down : 58.midicps * [2, 15/18, 27/16, 3/2, 4/3, 5/4, 9/8, 1],
+			\patternnotes : 58.midicps * [1,5/4,27/16],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
             \transpose : 1,
 			\counter : 0,
@@ -48,7 +49,7 @@ s.waitForBoot({
             // whenever you encounter a +, transpose up
             '+': [{ | glob, loc |
                 // extend list notes being played (using some randomness :) )
-                glob[\patternnotes] = glob[\patternnotes].add(glob[\acceptablenotes].choose);
+                glob[\patternnotes] = glob[\patternnotes].add(glob[\up].choose);
 				// limit pattern to 8 notes.
 				if (glob[\patternnotes].size > 9) {
                     glob[\patternnotes].pop;
@@ -60,7 +61,7 @@ s.waitForBoot({
             '-': [{ | glob, loc |
                 //"remove first note".postln;
 				// limit pattern to 8 notes.
-				glob[\patternnotes] = glob[\patternnotes].addFirst(glob[\acceptablenotes].choose);
+				glob[\patternnotes] = glob[\patternnotes].addFirst(glob[\down].choose);
 				if (glob[\patternnotes].size > 9) {
                     glob[\patternnotes].pop;
                 };
@@ -148,9 +149,9 @@ s.waitForBoot({
 		var p, q, pattern;
 
 
-		Pbindef(\p, \instrument, \kalimba, \amp, 1);
-		Pbindef(\q, \instrument, \plucking, \amp, 0.07, \decay, 2);
-		Pbindef(\r, \instrument, \blips, \amp, 0.5, \rel, 0.9);
+		Pbindef(\p, \instrument, \kalimba, \amp, 0.3);
+		Pbindef(\q, \instrument, \plucking, \amp, 0.09, \decay, 2);
+		Pbindef(\r, \instrument, \blips, \amp, 0.2, \rel, 0.9);
 
 		//Pbindef(\p, \instrument, \plucking, \amp, 0.1);
 		//q = Pbindef(\q, \instrument, \blips);
@@ -158,7 +159,7 @@ s.waitForBoot({
         lsys.getCalculatedString.do({
             | chr, idx |
 
-            var transposedpattern;
+			// var transposedpattern;
             var trans;
             var trans2;
 			var n1, n2, l, l2, t, t2, trel,harms,transf;
@@ -174,21 +175,21 @@ s.waitForBoot({
                 trans2 = interp2.globalState()[\transpose].debug("trans2");
 				//transf = (trans/trans2).debug("transf");
 
-				n1 = Pseq( trans.abs * interp.globalState()[\patternnotes].debug("n1"));
-				n2 = Pseq( trans2.abs * interp2.globalState()[\patternnotes].debug("n2"));
+				n1 = Pseq( trans * interp.globalState()[\patternnotes].debug("n1"));
+				n2 = Pseq(  trans2 * interp2.globalState()[\patternnotes].debug("n2"));
 
 				l = interp.globalState()[\lag].debug("lag");
 				l2 = interp2.globalState()[\lag].debug("lag2");
 				t = interp.globalState()[\tempo].debug("tempo");
                 t2 = interp2.globalState()[\tempo].debug("tempo2");
 
-				trel = t + t2 + 1.2; // for longer releases
-				harms = (9 + [trans,trans2].choose ).clip(4,20).debug("harms");
+				trel = t + t2; // for longer releases
+				harms = (7 + trans + trans2 + trel ).clip(6,20).debug("harms");
 
 				pattern =Ppar([
-					Pbindef(\p, \dur, t2, \freq, n2, \legato, l, \rel, 2 + t),
-					Pbindef(\q, \dur, t, \freq, n1, \legato, l, \decay, trel),
-					Pbindef(\r, \dur, t2, \freq, n1, \legato, l, \rel, t + t2, \harms, harms)
+					Pbindef(\p, \dur, t, \freq, n2, \legato, l, \rel, trel + t),
+					Pbindef(\q, \dur, t2, \freq, n2, \legato, l, \decay, trel + t2),
+					Pbindef(\r, \dur, t2*2, \freq, n1, \legato, l, \rel, trel, \harms, harms)
 
 				]);
 

@@ -29,14 +29,19 @@ s.waitForBoot({
     //	\acceptablenotes : 57.midicps * [1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 27/16, 9/5, 15/8, 2],
     //  \patternnotes : 57.midicps * [1, 16/15, 5/4],
 
+   // Mohanam
+   // U 1, 9/8, 5/4, 3/2, 27/16, 2
+   // D 2, 27/16, 3/2, 5/4, 9/8, 1
+
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
 			\acceptablenotes : 56.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2],
-
-			\patternnotes : 56.midicps * [1, 16/15,4/3],
+			\up : 56.midicps * [1, 9/8, 5/4, 3/2, 27/16],
+			\down : 56.midicps * [2, 27/16, 3/2, 5/4, 9/8],
+			\patternnotes : 56.midicps * [1,5/4,27/16],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
-            \transpose : 0,
+            \transpose : 1,
 			\counter : 0,
 			\lag: 0.0,
             \tempo : 0.2,
@@ -52,7 +57,7 @@ s.waitForBoot({
             // whenever you encounter a +, transpose up
             '+': [{ | glob, loc |
                 // extend list notes being played (using some randomness :) )
-                glob[\patternnotes] = glob[\patternnotes].add(glob[\acceptablenotes].choose);
+                glob[\patternnotes] = glob[\patternnotes].add(glob[\up].choose);
 				// limit pattern to 8 notes.
 				if (glob[\patternnotes].size > 9) {
                     glob[\patternnotes].pop;
@@ -64,7 +69,7 @@ s.waitForBoot({
             '-': [{ | glob, loc |
                 //"remove first note".postln;
 				// limit pattern to 8 notes.
-				glob[\patternnotes] = glob[\patternnotes].addFirst(glob[\acceptablenotes].choose);
+				glob[\patternnotes] = glob[\patternnotes].addFirst(glob[\down].choose);
 				if (glob[\patternnotes].size > 9) {
                     glob[\patternnotes].pop;
                 };
@@ -146,7 +151,7 @@ s.waitForBoot({
     s.sync;
 
 	// up the rate a bit
-	TempoClock.default = TempoClock.new(1.1);
+	TempoClock.default = TempoClock.new(1.2);
 
 	fork {
         var skipfirstidx = 0; // increase to skip more steps at the beginning
@@ -154,8 +159,8 @@ s.waitForBoot({
 		var p, q, pattern;
 
 
-		Pbindef(\r, \instrument, \blips, \amp, 0.3, \sus, 0.9);
-		Pbindef(\p, \instrument, \kalimba, \amp, 0.9);
+		Pbindef(\r, \instrument, \blips, \amp, 0.1, \sus, 0.9);
+		Pbindef(\p, \instrument, \kalimba, \amp, 0.2);
 		Pbindef(\q, \instrument, \plucking, \amp, 0.04, \decay, 2);
 		//Pbindef(\p, \instrument, \plucking, \amp, 0.1);
 		//q = Pbindef(\q, \instrument, \blips);
@@ -193,7 +198,7 @@ s.waitForBoot({
 				t = interp.globalState()[\tempo].debug("tempo");
                 t2 = interp2.globalState()[\tempo].debug("tempo2");
 				trel = t + t2; // for longer releases
-				harms = (9 + [trans,trans2].choose ).clip(4,20).debug("harms");
+				harms = (9 + [trans,trans2].choose + t2).clip(4,20).debug("harms");
 
 				pattern =
 					Ppar([
@@ -219,6 +224,4 @@ s.waitForBoot({
 
 });
 )
-
-
 
