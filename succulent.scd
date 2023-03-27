@@ -33,7 +33,6 @@ s.waitForBoot({
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\acceptablenotes : 60.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2],
 			\patternnotes : 60.midicps * [2*9/5, 1],
 			\up : 60.midicps * [2*9/5, 1, 16/15, 6/5, 4/3, 3/2, 8/5],
 			\dn : 60.midicps * [9/5, 8/5, 3/2, 4/3, 6/5, 16/15, 1],
@@ -152,7 +151,7 @@ s.waitForBoot({
 		var p, q, pattern;
 
 		Pbindef(\p, \instrument, \plucking, \amp, 0.075, \decay, 2);
-		Pbindef(\q, \instrument, \kalimba, \amp, 0.2, \rel, 1.4);
+		Pbindef(\q, \instrument, \kalimba, \amp, 0.4, \rel, 1.4);
 		Pbindef(\r, \instrument, \bird, \amp, 0.04, \rel, 0.2);
 
 		//q = Pbindef(\q, \instrument, \blips);
@@ -187,7 +186,7 @@ s.waitForBoot({
 				pattern = Ppar([
 					Pbindef(\p, \dur, t2, \freq, n1, \legato, l, \decay, ts ), //\amp, (ts/16).clip(0.001, 0.08).postln),
 					Pbindef(\q, \dur, ts, \freq, n2, \legato, l,  \rel, ts ),
-					Pbindef(\r, \dur, t, \freq, n1, \legato, l,  \rel, t2, \pan, (ts).postln )
+					Pbindef(\r, \dur, t, \freq, n1, \legato, l,  \rel, t2, \pan, [t, (0 - t) ].choose )
 				]);
 
                 if (player.notNil) { player.stop; };

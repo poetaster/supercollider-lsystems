@@ -27,11 +27,8 @@ s.waitForBoot({
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\acceptablenotes : 57.midicps * [1, 9/8, 5/4, 3/2, 27/16, 2, 15/18, 27/16, 3/2, 4/3, 5/4, 9/8, 1],
 			\up : 57.midicps * [1, 9/8, 5/4, 3/2, 27/16, 2],
 			\down : 57.midicps * [2, 15/18, 27/16, 3/2, 4/3, 5/4, 9/8, 1],
-			//\pup : 60.midicps * [1, 9/8, 5/4, 3/2, 27/16, 2],
-			//\pdn : 60.midicps * [2, 27/16, 3/2, 4/3, 5/4, 9/8, 1],
 			\pnotes : 57.midicps * [1, 9/8, 5/4],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
             \transpose : 1,
@@ -55,7 +52,7 @@ s.waitForBoot({
 				if (glob[\pnotes].size > 9) {
                     glob[\pnotes].pop;
                 };
-				glob[\transpose] = [1,2].choose;
+				glob[\transpose] = [1,2,3].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -67,14 +64,14 @@ s.waitForBoot({
 				if (glob[\pnotes].size > 1) {
                     glob[\pnotes].pop;
                 };
-				glob[\transpose] = [3/4,1/2].choose;
+				glob[\transpose] = [3/4,1/2,1].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
             // whenever you encounter an X, remove first note from the played notes
             'X' : [{ | glob, loc |
                 //"transpose down".postln;
-				glob[\lag] = (glob[\lag] + 0.5).clip(0,2);
+				glob[\lag] = (glob[\lag] + 0.3).clip(0,2);
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -138,14 +135,6 @@ s.waitForBoot({
 		5.do { var d; d = exprand(0.01, 1); u = SinOsc.ar(d * 300, u, rrand(0.1,1.2) * d, 1) };
 		Out.ar(out, Pan2.ar(SinOsc.ar(u + 1 * freq, 0, amp * env), pan));
 	}).add;
-	SynthDef (\sc303 , {  arg  out=0, freq=440, wave=11, ctf=100, res=0.5,
-		sus=0.4, dec=0.8, env=1000, gate=1, vol=0.08;
-		var  filEnv, volEnv, waves;
-		volEnv =  EnvGen.ar( Env.new([10e-10, 1, 1, 10e-10], [0.01, sus, dec],  'exp' ), gate, doneAction:2);
-		filEnv =  EnvGen.ar( Env.new([10e-10, 1, 10e-10], [0.01, dec],  'exp' ), gate);
-		waves = [ Saw.ar(freq, volEnv),  Pulse.ar(freq, 0.5, volEnv)];
-		Out.ar(out,  RLPF.ar(  Select.ar(wave, waves), ctf + (filEnv * env), res).dup * vol);
-	}).add;
 
     s.sync;
 
@@ -158,7 +147,7 @@ s.waitForBoot({
 		var p, q, pattern;
 
 		Pbindef(\r, \instrument, \bird, \amp, 0.2, \rel, 0.2);
-		Pbindef(\p, \instrument, \kalimba, \amp, 0.25);
+		Pbindef(\p, \instrument, \kalimba, \amp, 0.9);
 		Pbindef(\q, \instrument, \plucking, \amp, 0.08, \decay, 2);
 
         lsys.getCalculatedString.do({
@@ -187,13 +176,14 @@ s.waitForBoot({
 				t = interp.globalState()[\tempo].debug("tempo");
                 t2 = interp2.globalState()[\tempo].debug("tempo2");
 				tadd = t + t2;
-                ampl = 0.1;
-				if (tadd > 0.8) {ampl = 0.07;};
-				pattern =
-					Ppar([
-					    Pbindef(\q, \dur, tadd, \freq, n3, \legato, l, \decay, tadd*2, \amp, ampl ),
-					    Pbindef(\p, \dur, t2, \freq, n2, \legato, l, \rel, tadd  + 0.5),
-					    Pbindef(\r, \dur, t, \freq, n1, \legato, l,  \rel, t2, \amp, (t/4).clip(0.02, 0.06).postln )
+				ampl = 0.08;
+				if (trans >1 ) { ampl = 0.05 };
+				if (trans >1.5 ) { ampl = 0.03 };
+				if (trans >2 ) { ampl = 0.02 };
+				pattern = Ppar([
+					    Pbind(\instrument, \plucking, \dur, t, \freq, n1, \decay, t+1, \rel, tadd, \amp, ampl ),
+					    Pbind(\instrument, \kalimba, \dur, t2, \freq, n2, \rel, tadd  + 0.5, \amp, 0.4),
+					    Pbind(\instrument, \bird, \dur, tadd, \freq, n1, \rel, tadd + t2, \amp, (t/4).clip(0.02, 0.07).postln )
 
 				]);
 

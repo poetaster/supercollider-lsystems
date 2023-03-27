@@ -31,7 +31,7 @@ s.waitForBoot({
 			\acceptablenotes : 58.midicps * [1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 27/16, 9/5, 15/8, 2],
 			\up : 58.midicps * [1, 9/8, 5/4, 3/2, 27/16],
 			\down : 58.midicps * [2, 15/18, 27/16, 3/2, 4/3, 5/4, 9/8, 1],
-			\patternnotes : 58.midicps * [1,5/4,27/16],
+			\patternnotes : 58.midicps * [1, 5/4, 27/16],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
             \transpose : 1,
 			\counter : 0,
@@ -62,7 +62,7 @@ s.waitForBoot({
                 //"remove first note".postln;
 				// limit pattern to 8 notes.
 				glob[\patternnotes] = glob[\patternnotes].addFirst(glob[\down].choose);
-				if (glob[\patternnotes].size > 9) {
+				if (glob[\patternnotes].size > 1) {
                     glob[\patternnotes].pop;
                 };
 
@@ -105,20 +105,20 @@ s.waitForBoot({
             [240*ExpRand(0.97, 1.02), 2020*ExpRand(0.97, 1.02), 3151*ExpRand(0.97, 1.02)],
             [-9, 0, -5].dbamp,
             [0.8, 0.07, 0.08]
-        ], BPF.ar(PinkNoise.ar, 6500, 0.1) * EnvGen.ar(Env.perc(0.001, 0.01))) * 0.1;
+        ], BPF.ar(PinkNoise.ar, 6500, 0.1) * EnvGen.ar(Env.perc(0.001, 0.01))) * 1;
         snd = (snd*mix) + (click*(1-mix));
         snd = Mix( snd );
         Out.ar(out, Pan2.ar(snd, 0, amp));
     }).add;
 
-	SynthDef(\blips, {arg out = 0, freq = 440, harms = 11, att = 0.01, rel = 0.7, amp = 1, pan = 0.3;
+	SynthDef(\blips, {arg out = 0, freq = 440, harms = 11, att = 0.01, rel = 0.7, amp = 1, pan = 0.0;
 		var snd, env;
 		env = Env.perc(att, rel, amp).kr(doneAction: 2);
 		snd = BPF.ar(LeakDC.ar(Mix(Blip.ar([freq, freq*1.01], harms, env))), 440, 0.4);
 		Out.ar(out, Pan2.ar(snd, pan));
 	}).add;
 
-	SynthDef("Pdefhelp", { arg out, freq, sustain=0.7, amp=0.5, pan;
+	SynthDef("bird", { arg out, freq, sustain=0.7, amp=0.5, pan;
 		var env, u=1;
 		env = EnvGen.kr(Env.perc(0.01, sustain), 1, doneAction: Done.freeSelf);
 		5.do { var d; d = exprand(0.01, 1); u = SinOsc.ar(d * 300, u, rrand(0.1,1.2) * d, 1) };
@@ -150,8 +150,8 @@ s.waitForBoot({
 
 
 		Pbindef(\p, \instrument, \kalimba, \amp, 0.3);
-		Pbindef(\q, \instrument, \plucking, \amp, 0.09, \decay, 2);
-		Pbindef(\r, \instrument, \blips, \amp, 0.2, \rel, 0.9);
+		Pbindef(\q, \instrument, \plucking, \amp, 0.08, \decay, 2);
+		Pbindef(\r, \instrument, \blips, \amp, 0.3, \rel, 0.9);
 
 		//Pbindef(\p, \instrument, \plucking, \amp, 0.1);
 		//q = Pbindef(\q, \instrument, \blips);
@@ -188,7 +188,7 @@ s.waitForBoot({
 
 				pattern =Ppar([
 					Pbindef(\p, \dur, t, \freq, n2, \legato, l, \rel, trel + t),
-					Pbindef(\q, \dur, t2, \freq, n2, \legato, l, \decay, trel + t2),
+					Pbindef(\q, \dur, t2, \freq, n2, \legato, l, \decay, trel),
 					Pbindef(\r, \dur, t2*2, \freq, n1, \legato, l, \rel, trel, \harms, harms)
 
 				]);

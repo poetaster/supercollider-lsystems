@@ -7,6 +7,11 @@ rules:
   Y => [+F--F--]
   O => ++F--F
   P => --F++F
+
+using notes of the Mohanam raga
+Up 1, 9/8, 5/4, 3/2, 27/16
+Down 2, 27/16, 3/2, 5/4, 9/8
+
 */
 
 (
@@ -24,22 +29,13 @@ s.waitForBoot({
 			\P : "--F++F"
 
 	));
-    // sitar
-	// 48.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2, 2*16/15, 2*5/4, 2*4/3, 2*3/2];
-    //	\acceptablenotes : 57.midicps * [1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 27/16, 9/5, 15/8, 2],
-    //  \patternnotes : 57.midicps * [1, 16/15, 5/4],
-
-   // Mohanam
-   // U 1, 9/8, 5/4, 3/2, 27/16, 2
-   // D 2, 27/16, 3/2, 5/4, 9/8, 1
 
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\acceptablenotes : 56.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2],
-			\up : 56.midicps * [1, 9/8, 5/4, 3/2, 27/16],
-			\down : 56.midicps * [2, 27/16, 3/2, 5/4, 9/8],
-			\patternnotes : 56.midicps * [1,5/4,27/16],
+			\up : 57.midicps * [1, 9/8, 5/4, 3/2, 27/16],
+			\down : 57.midicps * [2, 27/16, 3/2, 5/4, 9/8],
+			\patternnotes : 57.midicps * [1,5/4,27/16],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
             \transpose : 1,
 			\counter : 0,
@@ -90,7 +86,6 @@ s.waitForBoot({
             'Y' : [{ | glob, loc |
 				glob[\lag] = (glob[\lag] - 0.1).clip(0,2);
 				//glob[\patternnotes] = glob[\patternnotes].add(glob[\customnotes].choose.debug("add new custom"));
-				glob[\tempo] = [0.8, 0.2, 0.4, 0.2].choose;
 				glob[\transpose] = [1,2,3].choose;
                 // always return state at the end
                 [glob, loc];
@@ -113,13 +108,13 @@ s.waitForBoot({
             [240*ExpRand(0.97, 1.02), 2020*ExpRand(0.97, 1.02), 3151*ExpRand(0.97, 1.02)],
             [-9, 0, -5].dbamp,
             [0.8, 0.07, 0.08]
-        ], BPF.ar(PinkNoise.ar, 6500, 0.1) * EnvGen.ar(Env.perc(0.001, 0.01))) * 0.1;
+        ], BPF.ar(PinkNoise.ar, 6500, 0.1) * EnvGen.ar(Env.perc(0.001, 0.01))) * 0.9;
         snd = (snd*mix) + (click*(1-mix));
         snd = Mix( snd );
         Out.ar(out, Pan2.ar(snd, 0, amp));
     }).add;
 
-	SynthDef(\blips, {arg out = 0, freq = 440, harms = 11, att = 0.01, rel = 0.7, amp = 1, pan = 0.3;
+	SynthDef(\blips, {arg out = 0, freq = 440, harms = 11, att = 0.01, rel = 0.7, amp = 1, pan = 0.0;
 		var snd, env;
 		env = Env.perc(att, rel, amp).kr(doneAction: 2);
 		snd = BPF.ar(LeakDC.ar(Mix(Blip.ar([freq, freq*1.01], harms, env))), 440, 0.4);
@@ -148,6 +143,24 @@ s.waitForBoot({
 		Out.ar(0, [snd, snd]);
 	}).add;
 
+	SynthDef(\bell, {
+		|fs=1, t60=0.5, pitchy=1, amp=0.05, gate=1,dur=0.5|
+		var sig, exciter;
+		//exciter = Impulse.ar(0);
+		exciter = WhiteNoise.ar() * EnvGen.ar(Env.perc(0.001, 0.05), gate) * 0.25;
+		sig = Klank.ar(
+			`[
+				[1, 2, 2.803, 3.871, 5.074, 7.81, 10.948, 14.421],   // freqs
+				[1, 0.044, 0.891, 0.0891, 0.794, 0.1, 0.281, 0.079], // amplitudes
+				[1, 0.205, 1, 0.196, 0.339, 0.047, 0.058, 0.047]*t60     // ring times
+			],
+			exciter,
+			freqscale:fs*pitchy);
+		//sig = FreeVerb.ar(sig) * amp;
+		sig=sig*0.8+CombC.ar(sig,0.5,0.3,0.5,0.2)*amp;
+		DetectSilence.ar(sig, 0.001, dur, doneAction:2);
+		Out.ar(0, [sig,sig]);
+	}).add;
     s.sync;
 
 	// up the rate a bit
@@ -159,19 +172,18 @@ s.waitForBoot({
 		var p, q, pattern;
 
 
-		Pbindef(\r, \instrument, \blips, \amp, 0.1, \sus, 0.9);
-		Pbindef(\p, \instrument, \kalimba, \amp, 0.2);
+		Pbindef(\r, \instrument, \blips, \amp, 0.1, \sus, 0.9, \pan, 0.0);
+		Pbindef(\p, \instrument, \kalimba, \amp, 0.3);
 		Pbindef(\q, \instrument, \plucking, \amp, 0.04, \decay, 2);
 		//Pbindef(\p, \instrument, \plucking, \amp, 0.1);
 		//q = Pbindef(\q, \instrument, \blips);
 
         lsys.getCalculatedString.do({
             | chr, idx |
-
             var transposedpattern;
             var trans;
             var trans2;
-			var n1, n2, l, l2, t, t2, trel, harms, mult, mult2;
+			var n1, n2, l, l2, t, t2, trel, harms;
 
             ("*** PART" + (idx+1) + "OF" + sz + "***").postln;
             interp.step(idx);
@@ -182,13 +194,6 @@ s.waitForBoot({
                 if (idx == (sz-1)) { repeats = 2; }; // don't repeat last pattern indefinitely
                 trans = interp.globalState()[\transpose].debug("trans");
                 trans2 = interp2.globalState()[\transpose].debug("trans2");
-				mult = 1;
-				if ( trans > 0 ) {
-					mult = trans;
-				};
-				if (trans2 > 0 ) {
-				    mult2 = trans2;
-				};
 
 				n1 = Pseq( trans.abs * interp.globalState()[\patternnotes].debug("n1"));
 				n2 = Pseq( trans2.abs * interp2.globalState()[\patternnotes].debug("n2"));
@@ -200,11 +205,11 @@ s.waitForBoot({
 				trel = t + t2; // for longer releases
 				harms = (9 + [trans,trans2].choose + t2).clip(4,20).debug("harms");
 
-				pattern =
-					Ppar([
-					 Pbindef(\r, \dur, t2, \freq, n2, \legato, l, \rel, trel, \harms, harms),
-					 Pbindef(\p, \dur, trel, \freq, n1, \legato, l, \rel, trel + 0.6),
-					 Pbindef(\q, \dur, t, \freq, n1, \legato, l, \decay, trel + 0.8)
+				pattern = Ppar([
+					 Pbindef(\r, \dur, t2, \freq, n2, \rel, trel, \harms, harms),
+					 Pbindef(\p, \dur, trel, \freq, n1, \rel, trel),
+					if (trel > 0.8) {
+						Pbindef(\q, \dur, t2, \freq, n2, \decay, trel+0.4)}
 
 				]);
 

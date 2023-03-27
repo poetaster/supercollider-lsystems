@@ -1,10 +1,3 @@
-// if you have never done so, run the following code first
-(
-Quarks.install("https://github.com/shimpe/panola");
-Quarks.install("https://github.com/shimpe/sc-lsystem");
-)
-
-
 /*
 // Gary Teachout Pean-c
 axiom: FX
@@ -12,6 +5,8 @@ rules:
  F =>
  X =>  FX-FY-FX+FY+FX+FY+FX+FY+FX-FY-FX-FY-FX-FY-FX+FY+FX
  Y => FY
+
+Sitar: 1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2, 2*16/15, 2*5/4, 2*4/3, 2*3/2
 
 */
 
@@ -31,11 +26,10 @@ s.waitForBoot({
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\acceptablenotes : 48.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2, 2*16/15, 2*5/4, 2*4/3, 2*3/2],
-
-			\patternnotes : 48.midicps * [1, 16/15, 5/4],
+			\acceptablenotes : 60.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8],
+			\patternnotes : 60.midicps * [1, 16/15, 5/4],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
-            \transpose : 0,
+            \transpose : 1,
 			\counter : 0,
 			\lag: 0.0,
             \tempo : 0.2,
@@ -44,30 +38,27 @@ s.waitForBoot({
         actions:(
             // whenever you encounter an F, extend the list of played notes
             'F' : [{ | glob, loc |
-				glob[\tempo] = [0.8, 0.2, 0.4, 0.2].choose;
+				glob[\transpose] = [1/2, 1, 2].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
-            // whenever you encounter a +, transpose up
+
             '+': [{ | glob, loc |
                 // extend list notes being played (using some randomness :) )
-                glob[\patternnotes] = glob[\patternnotes].add(glob[\acceptablenotes].choose);
-				glob[\patternnotes] = glob[\patternnotes].add(glob[\acceptablenotes].choose);
+				glob[\patternnotes] = glob[\patternnotes].addFirst(glob[\acceptablenotes].choose);
 				// limit pattern to 8 notes.
-				if (glob[\patternnotes].size > 9) {
+				if (glob[\patternnotes].size > 5) {
                     glob[\patternnotes].pop;
                 };
                 // always return state at the end
                 [glob, loc];
             }, nil],
-            // whenever you encounter a -, transpose down
+
             '-': [{ | glob, loc |
                 //"remove first note".postln;
                 if (glob[\patternnotes].size > 1) {
                     // keep at least one note
-                    glob[\patternnotes] = glob[\patternnotes].reverse;
                     glob[\patternnotes].pop;
-                    glob[\patternnotes] = glob[\patternnotes].reverse;
                 };
 
                 // always return state at the end
@@ -76,18 +67,17 @@ s.waitForBoot({
             // whenever you encounter an X, remove first note from the played notes
             'X' : [{ | glob, loc |
                 //"transpose down".postln;
-                glob[\transpose] = ([-3, -2, -1, 1 , 2 ,3].choose);
-				glob[\lag] = (glob[\lag] - 0.1).clip(0,2);
+                glob[\tempo] = [0.8, 0.2, 0.4].choose;
+				glob[\lag] = (glob[\lag] + 0.1).clip(0,1);
                 // always return state at the end
                 [glob, loc];
             }, nil],
 			//[0.1, 0.2, 0.3, 0.4, 0.5].choose;
             // whenever you encounter a Y, change tempo (randomly) )
             'Y' : [{ | glob, loc |
-				glob[\lag] = (glob[\lag] - 0.1).clip(0,2);
+				glob[\lag] = (glob[\lag] - 0.1).clip(0,1);
 				//glob[\patternnotes] = glob[\patternnotes].add(glob[\customnotes].choose.debug("add new custom"));
-				glob[\tempo] = [0.8, 0.2, 0.4, 0.2].choose;
-				glob[\transpose] = (glob[\transpose] + [1,2,3].choose).clip(-5, 9);
+				glob[\tempo] = [0.4, 0.2].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -98,10 +88,10 @@ s.waitForBoot({
 
 
     SynthDef(\kalimba, {
-        |out = 0, freq = 440, amp = 0.1, mix = 0.1|
+        |out = 0, freq = 440, amp = 0.1, mix = 0.1, rel=1.4|
         var snd, click;
         // Basic tone is a SinOsc
-        snd = SinOsc.ar(freq) * EnvGen.ar(Env.perc(0.03, Rand(2.0, 3.0), 1, -7), doneAction: 2);
+        snd = SinOsc.ar(freq) * EnvGen.ar(Env.perc(0.03, rel, 1, -7), doneAction: 2);
         snd = HPF.ar( LPF.ar(snd, 380), 120);
         // The "clicking" sounds are modeled with a bank of resonators excited by enveloped white noise
         click = DynKlank.ar(`[
@@ -110,48 +100,50 @@ s.waitForBoot({
             [240*ExpRand(0.97, 1.02), 2020*ExpRand(0.97, 1.02), 3151*ExpRand(0.97, 1.02)],
             [-9, 0, -5].dbamp,
             [0.8, 0.07, 0.08]
-        ], BPF.ar(PinkNoise.ar, 6500, 0.1) * EnvGen.ar(Env.perc(0.001, 0.01))) * 0.1;
+        ], BPF.ar(PinkNoise.ar, 6500, 0.1) * EnvGen.ar(Env.perc(0.001, 0.01))) * 0.8;
         snd = (snd*mix) + (click*(1-mix));
         snd = Mix( snd );
         Out.ar(out, Pan2.ar(snd, 0, amp));
     }).add;
 
-    SynthDef(\flute, {
-		| out = 0, freq = 440, amp = 1.0, a = 0.07, r = 0.1|
-		//var fmod = 1; // clean
-		//var fmod = LFCub.kr(freq:1/12).range(1, LFNoise2.kr(freq:12.0).range(1,1.1)); // tone deaf flute
-		var fmod = LFCub.kr(freq:1/12).range(1, LFNoise2.kr(freq:12.0).range(1,1.02)); // flute-like sound
-		var env = EnvGen.ar(Env.perc(a, r), levelScale:0.5, doneAction:2);
-		var snd = SinOsc.ar(freq * fmod)!2;
-		Out.ar(bus:out, channelsArray:(env*(amp*snd).tanh));
+
+	SynthDef("plucking", { arg amp = 0.1, freq = 440, rel = 2, coef = 0.2;
+		var env, snd;
+		env = EnvGen.kr(Env.linen(0, rel, 0), doneAction: 2);
+		snd = Pluck.ar(
+			in: WhiteNoise.ar(amp),
+			trig: Impulse.kr(0),
+			maxdelaytime: 0.1,
+			delaytime: freq.reciprocal,
+			decaytime: rel,
+			coef: coef);
+		Out.ar(0, [snd, snd]);
 	}).add;
 
-	SynthDef(\blips, {arg out = 0, freq = 440, numharm = 11, att = 0.01, rel = 1, amp = 0.2, pan = 0.3;
-		var snd, env;
-		env = Env.perc(att, rel, amp).kr(doneAction: 2);
-		snd = BPF.ar(LeakDC.ar(Mix(Blip.ar([freq, freq*1.01], numharm, env))), 440, 0.4);
-		Out.ar(out, Pan2.ar(snd, pan));
-	}).add;
 
-	SynthDef(\risset, {|out = 0, pan = 0, freq = 440, amp = 0.05, att = 0.005, rel = 1, gate = 1,vibFreq=7, vibAmp=0.1,vibAdd=0.5|
-		var amps = #[1, 0.67, 1, 1.8, 2.67, 1.67, 1.46, 1.33, 1.33, 1, 1.33];
-		var durs = #[1, 0.9, 0.65, 0.55, 0.325, 0.35, 0.25, 0.2, 0.15, 0.1, 0.075];
-		var frqs = #[0.56, 0.56, 0.92, 0.92, 1.19, 1.7, 2, 2.74, 3, 3.76, 4.07];
-		var dets = #[0, 1, 0, 1.7, 0, 0, 0, 0, 0, 0, 0];
-		var doneActionEnv = EnvGen.ar(Env.linen(0, att+rel, 0), gate, doneAction: 2);
-		var src = Mix.fill(11, {|i|
-			var env = EnvGen.ar(Env.perc(att, rel * durs[i], amps[i], att.explin(0.005, 4, -4.5, 0)), gate);
-			SinOsc.ar(freq*frqs[i] + dets[i], 0, amp*env);
-		});
-        src = src * SinOsc.kr(vibFreq*15, mul:vibAmp, add:vibAdd);
-		src = src * doneActionEnv * 0.5; // make sure it releases node after the end.
-	    Out.ar(out, Pan2.ar(src, pan));
+	SynthDef(\bell, {
+		|fs=1, t60=1, pitchy=1, amp=0.05, gate=1, cmb=0.5|
+		var sig, exciter;
+		//exciter = Impulse.ar(0);
+		exciter = WhiteNoise.ar() * EnvGen.ar(Env.perc(0.001, 0.05), gate) * 0.25;
+		sig = Klank.ar(
+			`[
+				[1, 2, 2.803, 3.871, 5.074, 7.81, 10.948, 14.421],   // freqs
+				[1, 0.044, 0.891, 0.0891, 0.794, 0.1, 0.281, 0.079], // amplitudes
+				[1, 0.205, 1, 0.196, 0.339, 0.047, 0.058, 0.047]*t60     // ring times
+			],
+			exciter,
+			freqscale:fs*pitchy);
+		//sig = FreeVerb.ar(sig) * amp;
+		sig = sig*0.8+CombC.ar(sig,cmb,0.3,cmb,0.2) * amp;
+		DetectSilence.ar(sig, 0.001, 0.5, doneAction:2);
+		Out.ar(0, sig!2);
 	}).add;
 
     s.sync;
 
 	// up the rate a bit
-	TempoClock.default = TempoClock.new(1.2);
+	TempoClock.default = TempoClock.new(1);
 
 	fork {
         var skipfirstidx = 0; // increase to skip more steps at the beginning
@@ -159,9 +151,9 @@ s.waitForBoot({
 		var p, q, pattern;
 
 
-		Pbindef(\r, \instrument, \blips, \amp, 0.4, \rel, 0.3);
-		Pbindef(\p, \instrument, \kalimba, \amp, 1.2);
-		Pbindef(\q, \instrument, \risset, \amp, 0.08, \rel, 1);
+		Pbindef(\r, \instrument, \blips, \amp, 0.4, \rel, 0.3, \numharms, 10);
+		Pbindef(\p, \instrument, \kalimba, \amp, 0.5, \rel, 0.3);
+		Pbindef(\q,  \instrument, \bell, \amp, 0.05, \t60, 2, \pitchy, 1);
 		//Pbindef(\p, \instrument, \plucking, \amp, 0.1);
 		//q = Pbindef(\q, \instrument, \blips);
 
@@ -171,7 +163,7 @@ s.waitForBoot({
             var transposedpattern;
             var trans;
             var trans2;
-			var n1, n2, l, l2, t, t2;
+			var n1, n2, n3, l, l2, t, t2, tadd, ampl;
 
             ("*** PART" + (idx+1) + "OF" + sz + "***").postln;
             interp.step(idx);
@@ -183,19 +175,24 @@ s.waitForBoot({
                 trans = interp.globalState()[\transpose].debug("trans");
                 trans2 = interp2.globalState()[\transpose].debug("trans2");
 
-				n1 = Pseq(interp.globalState()[\patternnotes].debug("n1"),repeats);
-				n2 = Pseq(interp2.globalState()[\patternnotes].debug("n2"),repeats);
-				l = interp.globalState()[\lag].debug("lag");
-				l2 = interp2.globalState()[\lag].debug("lag2");
+				n1 = Pseq(trans * interp.globalState()[\patternnotes]);
+				n2 = Pseq(trans2 * interp2.globalState()[\patternnotes]);
+				n3 = Pseq(interp2.globalState()[\patternnotes].debug("notes2"));
+				l = interp.globalState()[\lag];
+				l2 = interp2.globalState()[\lag];
 				t = interp.globalState()[\tempo].debug("tempo");
                 t2 = interp2.globalState()[\tempo].debug("tempo2");
+				tadd = t + t2;
+				ampl = 0.04;
+				if (trans >1 ) { ampl = 0.04 };
+				if (trans >1.5 ) { ampl = 0.03 };
+				if (trans >2 ) { ampl = 0.02 };
+				pattern = Ppar([
+					    Pbind(\instrument, \plucking, \dur, t, \freq, n2, \amp, ampl+0.05, \decay, tadd),
+					    Pbind(\instrument, \bell, \t60, tadd, \fs, n1, \pitchy, 1, \dur, t2, \amp, ampl),
+						//Pbind(\instrument, \blips, \freq, n2, \amp, ampl * 8, \rel, t2, \dur, t2),
 
-				pattern =
-					Ppar([
-						Pbindef(\q, \dur, t, \freq, n1, \legato, l, \transpose, trans , \rel, t + 0.8),
-						Pbindef(\p, \dur, t*2, \freq, n2, \legato, l, \transpose, trans2),
-					    Pbindef(\r, \dur, t2, \freq, n2, \legato, l, \transpose, trans2 , \rel, t2 + t)
-
+					//
 				]);
 
                 if (player.notNil) { player.stop; };
