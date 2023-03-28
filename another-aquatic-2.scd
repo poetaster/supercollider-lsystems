@@ -209,7 +209,7 @@ s.waitForBoot({
 					 Pbindef(\r, \dur, t2, \freq, n2, \rel, trel, \harms, harms),
 					 Pbindef(\p, \dur, trel, \freq, n1, \rel, trel),
 					if (trel > 0.8) {
-						Pbindef(\q, \dur, t2, \freq, n2, \decay, trel+0.4)}
+						Pbindef(\q, \dur, t2, \freq, n2, \decay, trel*2)}
 
 				]);
 

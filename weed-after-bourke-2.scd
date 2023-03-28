@@ -150,7 +150,7 @@ s.waitForBoot({
 
 
 		Pbindef(\p, \instrument, \kalimba, \amp, 0.3);
-		Pbindef(\q, \instrument, \plucking, \amp, 0.08, \decay, 2);
+		Pbindef(\q, \instrument, \plucking, \amp, 0.04, \decay, 2);
 		Pbindef(\r, \instrument, \blips, \amp, 0.3, \rel, 0.9);
 
 		//Pbindef(\p, \instrument, \plucking, \amp, 0.1);
@@ -188,7 +188,7 @@ s.waitForBoot({
 
 				pattern =Ppar([
 					Pbindef(\p, \dur, t, \freq, n2, \legato, l, \rel, trel + t),
-					Pbindef(\q, \dur, t2, \freq, n2, \legato, l, \decay, trel),
+					Pbindef(\q, \dur, t2, \freq, n2, \legato, l, \decay, trel*2),
 					Pbindef(\r, \dur, t2*2, \freq, n1, \legato, l, \rel, trel, \harms, harms)
 
 				]);

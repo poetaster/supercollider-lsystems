@@ -8,11 +8,25 @@ rules:
 
 Sitar: 1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2, 2*16/15, 2*5/4, 2*4/3, 2*3/2
 
+Bilahari
+U 1, 9/8, 5/4, 3/2, 27/16, 2
+D 2, 15/18, 27/16, 3/2, 4/3, 5/4, 9/8, 1
+
+one can also use internal scales
+Scale.nawaAthar;
+\ bayati: Bayati
+\ bhairav: Bhairav
+\ farahfaza
+\ ajam
+\ ahirbhairav
+\ nikriz;
+\ nawaAthar
 */
 
 (
 s.waitForBoot({
     var player;
+	var sc = Scale.enigmatic;
     var lsys = LSystem(
         iterations:2,
         axiom:"FX",
@@ -26,8 +40,11 @@ s.waitForBoot({
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\acceptablenotes : 60.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8],
-			\patternnotes : 60.midicps * [1, 16/15, 5/4],
+			//\acceptablenotes : 60.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8],
+			\acceptablenotes : 60.midicps * [1, 9/8, 5/4, 3/2, 27/16, 2, 15/18, 27/16, 3/2, 4/3, 5/4, 9/8, 1],
+			// this is the method using Scale as defined above.
+			//\acceptablenotes : 60.midicps * sc.ratios,
+			\patternnotes : 60.midicps * [1, 5/4, 27/16],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
             \transpose : 1,
 			\counter : 0,
@@ -38,7 +55,7 @@ s.waitForBoot({
         actions:(
             // whenever you encounter an F, extend the list of played notes
             'F' : [{ | glob, loc |
-				glob[\transpose] = [1/2, 1, 2].choose;
+				glob[\transpose] = [1, 1/2, 1, 2, 1].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -47,7 +64,7 @@ s.waitForBoot({
                 // extend list notes being played (using some randomness :) )
 				glob[\patternnotes] = glob[\patternnotes].addFirst(glob[\acceptablenotes].choose);
 				// limit pattern to 8 notes.
-				if (glob[\patternnotes].size > 5) {
+				if (glob[\patternnotes].size > 8) {
                     glob[\patternnotes].pop;
                 };
                 // always return state at the end
@@ -56,7 +73,7 @@ s.waitForBoot({
 
             '-': [{ | glob, loc |
                 //"remove first note".postln;
-                if (glob[\patternnotes].size > 1) {
+                if (glob[\patternnotes].size > 2) {
                     // keep at least one note
                     glob[\patternnotes].pop;
                 };
@@ -190,7 +207,7 @@ s.waitForBoot({
 				pattern = Ppar([
 					    Pbind(\instrument, \plucking, \dur, t, \freq, n2, \amp, ampl+0.05, \decay, tadd),
 					    Pbind(\instrument, \bell, \t60, tadd, \fs, n1, \pitchy, 1, \dur, t2, \amp, ampl),
-						//Pbind(\instrument, \blips, \freq, n2, \amp, ampl * 8, \rel, t2, \dur, t2),
+						//Pbind(\instrument, \kalimba, \freq, n2, \amp, ampl * 15, \rel, t2, \dur, t2),
 
 					//
 				]);
@@ -206,7 +223,6 @@ s.waitForBoot({
             }
 
         });
-	//pattern.play;
     }
 });
 )

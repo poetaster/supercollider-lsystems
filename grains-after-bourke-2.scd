@@ -4,8 +4,20 @@ axiom: Y
 rules:
   X => dX[-F+FF]cg[+F-FF]dFX
   Y => eYFX[+Y][-Y]
+
+carnatic [1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 27/16, 9/5, 15/8, 2]
+
+Naadana-amakriya
+U 2*15/8, 1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8
+D 15/8, 8/5, 3/2,, 4/3, 5/4, 16/15, 1 2*15/8
+
+	// below is archytas enharmonic
+    // 28/7, 36/35, 5/4, 4/3, 6/5,10/9
+    // 28/7, 36/35, 5/4, 4/3, 6/5,10/9
+	// below is archytas enharmonic
+
 */
-\rest;
+
 
 (
 s.waitForBoot({
@@ -17,21 +29,11 @@ s.waitForBoot({
         rules:(
 			\X : "X[-F+FF][+F-FF]FX",
 			\Y : "YFX[+Y][-Y]",
-
 	));
-	// 48.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2, 2*16/15, 2*5/4, 2*4/3, 2*3/2];
-    // 28/7, 36/35, 5/4, 4/3, 6/5,10/9
-    // 28/7, 36/35, 5/4, 4/3, 6/5,10/9
-	// below is archytas enharmonic
-	// carnatic [1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 27/16, 9/5, 15/8, 2]
-    //Naadana-amakriya
-    // U 2*15/8, 1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8
-    // U 15/8, 8/5, 3/2,, 4/3, 5/4, 16/15, 1 2*15/8
 
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\acceptablenotes : 54.midicps * [2*15/8, 1, 16/15],
 			\up : 54.midicps *  [2*15/8, 1, 16/15, 5/4, 4/3, 3/2, 8/5],
 			\down : 54.midicps * [15/8, 8/5, 3/2, 4/3, 5/4, 16/15, 1],
             \patternnotes : 54.midicps * [2*15/8, 1, 16/15],
@@ -86,7 +88,7 @@ s.waitForBoot({
             'Y' : [{ | glob, loc |
 				glob[\lag] = (glob[\lag] - 0.1).clip(0,2);
 				//glob[\patternnotes] = glob[\patternnotes].add(glob[\customnotes].choose.debug("add new custom"));
-				glob[\tempo] = [0.8, 0.2, 0.4, 0.2].choose;
+				glob[\tempo] = [0.8, 0.2, 0.4].choose;
 				glob[\transpose] = [1,2,3].choose;
                 // always return state at the end
                 [glob, loc];
@@ -116,15 +118,6 @@ s.waitForBoot({
         Out.ar(out, Pan2.ar(snd, 0, amp));
     }).add;
 
-    SynthDef(\flute, {
-		| out = 0, freq = 440, amp = 1.0, att = 0.1, rel = 0.1|
-		//var fmod = 1; // clean
-		//var fmod = LFCub.kr(freq:1/12).range(1, LFNoise2.kr(freq:12.0).range(1,1.1)); // tone deaf flute
-		var fmod = LFCub.kr(freq:1/12).range(1, LFNoise2.kr(freq:12.0).range(1,1.02)); // flute-like sound
-		var env = EnvGen.ar(Env.perc(att, rel), levelScale:0.5, doneAction:2);
-		var snd = SinOsc.ar(freq * fmod)!2;
-		Out.ar(bus:out, channelsArray:(env*(amp*snd).tanh));
-	}).add;
 
 	SynthDef(\blips, {arg out = 0, freq = 440, harms = 11, att = 0.01, rel = 0.7, amp = 1, pan = 0.0;
 		var snd, env;
@@ -160,6 +153,13 @@ s.waitForBoot({
 			coef: coef);
 		Out.ar(0, [snd, snd]);
 	}).add;
+	SynthDef("bird", { arg out, freq, sustain=0.7, amp=0.5, pan;
+		var env, u=1;
+		env = EnvGen.kr(Env.perc(0.01, sustain), 1, doneAction: Done.freeSelf);
+		5.do { var d; d = exprand(0.01, 1); u = SinOsc.ar(d * 300, u, rrand(0.1,1.2) * d, 1) };
+		Out.ar(out, Pan2.ar(SinOsc.ar(u + 1 * freq, 0, amp * env), pan));
+	}).add;
+
 	SynthDef(\bell, {
 		|fs=1, t60=1, pitchy=1, amp=0.05, gate=1, cmb=0.5|
 		var sig, exciter;
@@ -189,9 +189,10 @@ s.waitForBoot({
 		var p, q, pattern;
 
 
-		//Pbindef(\r, \instrument, \blips, \amp, 0.2, \rel, 0.3);
+		//Pbindef(\r, \instrument, \blips, \amp, 0.2, \rel, 0.3, \harms, 22);
 		Pbindef(\q, \instrument, \risset, \amp, 0.01, \rel, 0.1);
 		Pbindef(\p, \instrument, \kalimba, \amp, 0.5, \rel, 0.4);
+		Pbindef(\r, \instrument, \bird, \amp, 0.04, \rel, 0.2);
 
         lsys.getCalculatedString.do({
             | chr, idx |
@@ -218,27 +219,20 @@ s.waitForBoot({
 				t = interp.globalState()[\tempo].debug("tempo");
                 t2 = interp2.globalState()[\tempo].debug("tempo2");
 				tadd = t + t2; // for longer releases
+				// this should be a curve.
 				ampl = 0.04;
 				if (trans >1 ) { ampl = 0.03 };
 				if (trans >1.5 ) { ampl = 0.02 };
 				if (trans >2 ) { ampl = 0.01 };
-				(3* ampl).postln;
-				(11* ampl+t2).postln;
 
+				// we're mixing bind and bindef case, well, bell
 				pattern = Ppar([
 					    Pbind(\instrument, \bell, \t60, tadd, \fs, n1, \pitchy, 1, \dur, tadd, \amp, ampl),
 					if (tadd > 0.6 ) {
-						Pbindef(\q, \dur, t, \freq, n1, \rel, tadd, \amp, ampl*2.5)};,
+						Pbindef(\r, \dur, t, \freq, n1, \rel, t, \amp, ampl)};,
 					    Pbindef(\p, \dur, t2, \freq, n2, \rel, t2, \amp, (ampl*11)+t2),
 
 				]);
-				/*pattern = Ppar([
-					    Pbindef(\r, \dur, t2, \freq, n2, \rel, t2, \harms, harms, \amp, amps),
-					if (tadd < 0.8 ) {
-						Pbindef(\q, \dur, tadd, \freq, n1, \rel, tadd*2)};,
-						Pbindef(\p, \dur, t, \freq, n1, \rel, t),
-
-				]);*/
 
                 if (player.notNil) { player.stop; };
 

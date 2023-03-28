@@ -33,9 +33,9 @@ s.waitForBoot({
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\patternnotes : 60.midicps * [2*9/5, 1],
-			\up : 60.midicps * [2*9/5, 1, 16/15, 6/5, 4/3, 3/2, 8/5],
-			\dn : 60.midicps * [9/5, 8/5, 3/2, 4/3, 6/5, 16/15, 1],
+			\patternnotes : 48.midicps * [2*9/5, 1],
+			\up : 48.midicps * [2*9/5, 1, 16/15, 6/5, 4/3, 3/2, 8/5],
+			\dn : 48.midicps * [9/5, 8/5, 3/2, 4/3, 6/5, 16/15, 1],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
             \transpose : 1,
 			\lag: 0.0,
@@ -45,7 +45,7 @@ s.waitForBoot({
         actions:(
             // whenever you encounter an F, extend the list of played notes
             'F' : [{ | glob, loc |
-				glob[\tempo] = [0.8, 0.2, 0.4].choose;
+				glob[\transpose] = [1, 1/2, 2, 1].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -74,8 +74,7 @@ s.waitForBoot({
             }, nil],
             // whenever you encounter an X, remove first note from the played notes
             'X' : [{ | glob, loc |
-                //"transpose down".postln;
-                glob[\transpose] = [3/4,1/2].choose;
+                glob[\tempo] = [0.8, 0.4, 0.2, 0.4].choose;
 				glob[\lag] = (glob[\lag] + 0.3).clip(0,2);
                 // always return state at the end
                 [glob, loc];
@@ -85,8 +84,7 @@ s.waitForBoot({
             'Y' : [{ | glob, loc |
 				glob[\lag] = (glob[\lag] - 0.1).clip(0,2);
 				//glob[\patternnotes] = glob[\patternnotes].add(glob[\customnotes].choose.debug("add new custom"));
-				glob[\tempo] = [0.8, 0.2, 0.4].choose;
-				glob[\transpose] = [1,2,3].choose;
+				glob[\tempo] = [0.2, 0.4].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -143,18 +141,16 @@ s.waitForBoot({
 
     s.sync;
     // up the rate a bit
-	TempoClock.default = TempoClock.new(1.125);
+	TempoClock.default = TempoClock.new(1.5);
 
 	fork {
         var skipfirstidx = 0; // increase to skip more steps at the beginning
         var sz = lsys.getCalculatedString.size();
 		var p, q, pattern;
 
-		Pbindef(\p, \instrument, \plucking, \amp, 0.075, \decay, 2);
+		Pbindef(\p, \instrument, \plucking, \amp, 0.07, \decay, 2);
 		Pbindef(\q, \instrument, \kalimba, \amp, 0.4, \rel, 1.4);
-		Pbindef(\r, \instrument, \bird, \amp, 0.04, \rel, 0.2);
-
-		//q = Pbindef(\q, \instrument, \blips);
+		Pbindef(\r, \instrument, \bird, \amp, 0.025, \rel, 0.2);
 
         lsys.getCalculatedString.do({
             | chr, idx |
@@ -162,7 +158,7 @@ s.waitForBoot({
             var transposedpattern;
             var trans;
             var trans2;
-			var n1, n2, l, l2, t, t2, ts;
+			var n1, n2, l, l2, t, t2, ts, ampl;
 
             ("*** PART" + (idx+1) + "OF" + sz + "***").postln;
             interp.step(idx);
@@ -170,7 +166,7 @@ s.waitForBoot({
             // start playing from step skipfirstidx
             if (idx > skipfirstidx) {
                 var repeats = 1;
-                if (idx == (sz-1)) { repeats = 2; }; // don't repeat last pattern indefinitely
+                if (idx == (sz-1)) { repeats = 3; }; // don't repeat last pattern indefinitely
                 trans = interp.globalState()[\transpose].debug("trans");
                 trans2 = interp2.globalState()[\transpose].debug("trans2");
 
@@ -178,15 +174,18 @@ s.waitForBoot({
 				n2 = Pseq(trans2 * interp2.globalState()[\patternnotes].debug("n2"),repeats);
 
 				l = interp.globalState()[\lag].debug("lag");
-				l2 = interp2.globalState()[\lag].debug("lag2");
+
 				t = interp.globalState()[\tempo].debug("tempo");
                 t2 = interp2.globalState()[\tempo].debug("tempo2");
 				ts = t + t2;
-				//if ( trans || trans2  ) { amps = 0.2; };s
+
+				ampl = 0.06;
+				if (trans2 >1.5 ) { ampl = 0.05 };
+
 				pattern = Ppar([
-					Pbindef(\p, \dur, t2, \freq, n1, \legato, l, \decay, ts ), //\amp, (ts/16).clip(0.001, 0.08).postln),
-					Pbindef(\q, \dur, ts, \freq, n2, \legato, l,  \rel, ts ),
-					Pbindef(\r, \dur, t, \freq, n1, \legato, l,  \rel, t2, \pan, [t, (0 - t) ].choose )
+					Pbindef(\p, \dur, t2, \freq, n2, \legato, l, \decay, ts + t2, \amp, ampl ),
+					Pbindef(\q, \dur, t, \freq, n1, \legato, l,  \rel, ts ),
+					Pbindef(\r, \dur, t, \freq, n1, \legato, l,  \rel, ts + t, \pan, [t, (0 - t) ].choose )
 				]);
 
                 if (player.notNil) { player.stop; };
@@ -200,7 +199,6 @@ s.waitForBoot({
             }
 
         });
-	//pattern.play;
     }
 
 });
