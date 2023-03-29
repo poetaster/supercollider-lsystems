@@ -64,7 +64,7 @@ s.waitForBoot({
                 // extend list notes being played (using some randomness :) )
 				glob[\patternnotes] = glob[\patternnotes].addFirst(glob[\acceptablenotes].choose);
 				// limit pattern to 8 notes.
-				if (glob[\patternnotes].size > 8) {
+				if (glob[\patternnotes].size > 4) {
                     glob[\patternnotes].pop;
                 };
                 // always return state at the end
@@ -207,7 +207,7 @@ s.waitForBoot({
 				pattern = Ppar([
 					    Pbind(\instrument, \plucking, \dur, t, \freq, n2, \amp, ampl+0.05, \decay, tadd),
 					    Pbind(\instrument, \bell, \t60, tadd, \fs, n1, \pitchy, 1, \dur, t2, \amp, ampl),
-						//Pbind(\instrument, \kalimba, \freq, n2, \amp, ampl * 15, \rel, t2, \dur, t2),
+						Pbind(\instrument, \kalimba, \freq, n2, \amp, ampl * 15, \rel, tadd + 0.5, \dur, t2),
 
 					//
 				]);

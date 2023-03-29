@@ -143,6 +143,13 @@ s.waitForBoot({
 		Out.ar(0, [snd, snd]);
 	}).add;
 
+	SynthDef("bird", { arg out, freq, sustain=0.7, amp=0.5, pan;
+		var env, u=1;
+		env = EnvGen.kr(Env.perc(0.01, sustain), 1, doneAction: Done.freeSelf);
+		5.do { var d; d = exprand(0.01, 1); u = SinOsc.ar(d * 300, u, rrand(0.1,1.2) * d, 1) };
+		Out.ar(out, Pan2.ar(SinOsc.ar(u + 1 * freq, 0, amp * env), pan));
+	}).add;
+
 	SynthDef(\bell, {
 		|fs=1, t60=0.5, pitchy=1, amp=0.05, gate=1,dur=0.5|
 		var sig, exciter;
@@ -161,9 +168,11 @@ s.waitForBoot({
 		DetectSilence.ar(sig, 0.001, dur, doneAction:2);
 		Out.ar(0, [sig,sig]);
 	}).add;
-    s.sync;
+
+
 
 	// up the rate a bit
+	s.sync;
 	TempoClock.default = TempoClock.new(1.2);
 
 	fork {
@@ -173,8 +182,8 @@ s.waitForBoot({
 
 
 		Pbindef(\r, \instrument, \blips, \amp, 0.1, \sus, 0.9, \pan, 0.0);
-		Pbindef(\p, \instrument, \kalimba, \amp, 0.3);
-		Pbindef(\q, \instrument, \plucking, \amp, 0.04, \decay, 2);
+		Pbindef(\p, \instrument, \kalimba, \amp, 0.38);
+		Pbindef(\q, \instrument, \plucking, \amp, 0.05, \decay, 2);
 		//Pbindef(\p, \instrument, \plucking, \amp, 0.1);
 		//q = Pbindef(\q, \instrument, \blips);
 
@@ -183,7 +192,7 @@ s.waitForBoot({
             var transposedpattern;
             var trans;
             var trans2;
-			var n1, n2, l, l2, t, t2, trel, harms;
+			var n1, n2, l, l2, t, t2, trel, harms,ampl;
 
             ("*** PART" + (idx+1) + "OF" + sz + "***").postln;
             interp.step(idx);
@@ -204,14 +213,20 @@ s.waitForBoot({
                 t2 = interp2.globalState()[\tempo].debug("tempo2");
 				trel = t + t2; // for longer releases
 				harms = (9 + [trans,trans2].choose + t2).clip(4,20).debug("harms");
+				ampl = 0.04;
+				if (trans >1 ) { ampl = 0.04 };
+				if (trans >1.5 ) { ampl = 0.03 };
+				if (trans >2 ) { ampl = 0.02 };
 
 				pattern = Ppar([
-					 Pbindef(\r, \dur, t2, \freq, n2, \rel, trel, \harms, harms),
-					 Pbindef(\p, \dur, trel, \freq, n1, \rel, trel),
+						Pbind(\instrument, \bird, \dur, t2, \freq, n2, \rel, t2, \amp, ampl + 0.08 ),
+					    Pbindef(\p, \dur, trel, \freq, n1, \rel, trel, \amp, 0.38 + t),
+					    Pbind(\instrument, \bell, \t60, trel, \fs, n1, \pitchy, 1, \dur, t2, \amp, ampl),
 					if (trel > 0.8) {
-						Pbindef(\q, \dur, t2, \freq, n2, \decay, trel*2)}
+						Pbindef(\q, \dur, t2, \freq, n2, \decay, trel+t)}
 
 				]);
+
 
                 if (player.notNil) { player.stop; };
 

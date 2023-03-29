@@ -52,7 +52,7 @@ s.waitForBoot({
 				if (glob[\pnotes].size > 9) {
                     glob[\pnotes].pop;
                 };
-				glob[\transpose] = [1,2,3].choose;
+
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -71,16 +71,17 @@ s.waitForBoot({
             // whenever you encounter an X, remove first note from the played notes
             'X' : [{ | glob, loc |
                 //"transpose down".postln;
-				glob[\lag] = (glob[\lag] + 0.3).clip(0,2);
+				glob[\transpose] = [1,2,3].choose;
+
                 // always return state at the end
                 [glob, loc];
             }, nil],
 			//[0.1, 0.2, 0.3, 0.4, 0.5].choose;
             // whenever you encounter a Y, change tempo (randomly) )
             'Y' : [{ | glob, loc |
-				glob[\lag] = (glob[\lag] - 0.3).clip(0,2);
+				glob[\lag] = [0.8, 0.2, 0.4, 0.2].choose;
 				//glob[\patternnotes] = glob[\patternnotes].add(glob[\customnotes].choose.debug("add new custom"));
-				glob[\tempo] = [0.2, 0.4, 0.2].choose;
+
 
                 // always return state at the end
                 [glob, loc];
@@ -146,9 +147,9 @@ s.waitForBoot({
         var sz = lsys.getCalculatedString.size();
 		var p, q, pattern;
 
-		Pbindef(\r, \instrument, \bird, \amp, 0.2, \rel, 0.2);
+		Pbindef(\r, \instrument, \bird, \amp, 0.04, \rel, 0.2);
 		Pbindef(\p, \instrument, \kalimba, \amp, 0.9);
-		Pbindef(\q, \instrument, \plucking, \amp, 0.08, \decay, 2);
+		Pbindef(\q, \instrument, \plucking, \amp, 0.07, \decay, 2);
 
         lsys.getCalculatedString.do({
             | chr, idx |
@@ -176,7 +177,7 @@ s.waitForBoot({
 				t = interp.globalState()[\tempo].debug("tempo");
                 t2 = interp2.globalState()[\tempo].debug("tempo2");
 				tadd = t + t2;
-				ampl = 0.08;
+				ampl = 0.07;
 				if (trans >1 ) { ampl = 0.05 };
 				if (trans >1.5 ) { ampl = 0.03 };
 				if (trans >2 ) { ampl = 0.02 };

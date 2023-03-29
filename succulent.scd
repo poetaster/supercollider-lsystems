@@ -159,7 +159,6 @@ s.waitForBoot({
             var trans;
             var trans2;
 			var n1, n2, l, l2, t, t2, ts, ampl;
-
             ("*** PART" + (idx+1) + "OF" + sz + "***").postln;
             interp.step(idx);
             interp2.step(idx);
