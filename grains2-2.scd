@@ -10,13 +10,22 @@ Punnaag-avaraali raga
 U 2*9/5, 1, 16/15, 6/5, 4/3, 3/2, 8/5, 9/5
 D 9/5, 8/5, 3/2, 4/3, 6/5, 16/15, 1, 2*9/5
 
+Scale.nawaAthar;
+\ bayati: Bayati
+\ bhairav: Bhairav
+\ farahfaza
+\ ajam
+\ ahirbhairav
+\ nikriz;
+\ nawaAthar
 */
 
 (
 s.waitForBoot({
     var player;
+
     var lsys = LSystem(
-        iterations:3,
+        iterations:2,
         axiom:"Y",
         constants:Set[],
         rules:(
@@ -24,13 +33,15 @@ s.waitForBoot({
 			\Y : "YFX[+Y][-Y]XFY",
 
 	));
-
+    var sc = Scale.nawaAthar;
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\up : 60.midicps *  [2*9/5, 1, 16/15, 6/5, 4/3, 3/2, 8/5],
-			\down : 60.midicps * [9/5, 8/5, 3/2, 4/3, 6/5, 16/15, 1],
-            \patternnotes : 60.midicps * [9/5, 8/5, 3/2,],
+			//\up : 58.midicps * sc.ratios,
+			//\down: 58.midicps * sc.ratios.reverse,
+			\up : 58.midicps *  [1, 16/15, 4/3, 3/2, 8/5],
+			\down : 58.midicps * [9/5, 3/2, 4/3, 6/5, 1],
+            \patternnotes : 58.midicps * [1, 4/3, 8/5],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
             \transpose : 1,
 			\counter : 0,

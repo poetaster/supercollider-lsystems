@@ -33,7 +33,7 @@ s.waitForBoot({
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\patternnotes : 48.midicps * [2*9/5, 1],
+			\patternnotes : 48.midicps * [2*9/5, 1, 16/15, 4/3],
 			\up : 48.midicps * [2*9/5, 1, 16/15, 6/5, 4/3, 3/2, 8/5],
 			\dn : 48.midicps * [9/5, 8/5, 3/2, 4/3, 6/5, 16/15, 1],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
