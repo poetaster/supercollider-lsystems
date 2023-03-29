@@ -1,14 +1,6 @@
 /*
  // Grains 2, after P. Bourke
-axiom: Y
-rules:
-  X => cX[-FF-F]g[+FF+F]dFX
-  Y => eYFX[+Y][-Y]XFY
-
-Punnaag-avaraali raga
-
-U 2*9/5, 1, 16/15, 6/5, 4/3, 3/2, 8/5, 9/5
-D 9/5, 8/5, 3/2, 4/3, 6/5, 16/15, 1, 2*9/5
+kk
 
 Scale.nawaAthar;
 \ bayati: Bayati
