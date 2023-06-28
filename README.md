@@ -19,13 +19,6 @@ In the main, the supercollider files designated as Pbindef are more musical and 
 
 Here is an example:
 
-
-
-<audio controls preload="auto" width="100%" class="html-video">
-    <source src="https://github.com/poetaster/supercollider-lsystems/blob/main/succulent.mp3" type="audio/mp3" />
-  <p></p>
-</audio>
-
 # poetasters succulent 1
 
 The simplified form of axiom and rules (without color):
@@ -40,6 +33,9 @@ rules:
 
 ```
 
+<audio controls preload="auto" width="100%" class="html-video">
+    <source src="https://github.com/poetaster/supercollider-lsystems/blob/main/succulent.mp3" type="audio/mp3" />
+</audio>
 
 ![Succulent](succulent.svg)
 
