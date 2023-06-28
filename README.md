@@ -33,9 +33,8 @@ rules:
 
 ```
 
-<audio controls preload="auto" width="100%" class="html-video">
-    <source src="https://github.com/poetaster/supercollider-lsystems/blob/main/succulent.mp3" type="audio/mp3" />
-</audio>
+https://github.com/poetaster/supercollider-lsystems/blob/main/succulent.mp3
+
 
 ![Succulent](succulent.svg)
 
