@@ -33,7 +33,7 @@ rules:
 
 ```
 
-<video width="180px" src="https://github.com/poetaster/supercollider-lsystems/blob/main/succulent.mp3" />
+![Audio](https://github.com/poetaster/supercollider-lsystems/blob/main/succulent.mp3)
 
 
 ![Succulent](succulent.svg)
