@@ -190,7 +190,7 @@ s.waitForBoot({
     s.sync;
 
 	// up the rate a bit
-	TempoClock.default = TempoClock.new(1);
+	TempoClock.default = TempoClock.new(1.16666666);
 
 	fork {
         var skipfirstidx = 0; // increase to skip more steps at the beginning
@@ -237,11 +237,11 @@ s.waitForBoot({
 				//if (trans >2 ) { ampl = 0.02 };
 				pattern = Ppar([
 
-						Pbind(\instrument, \bird, \dur, t, \freq, n1*2, \amp, ampl*2, \sustain, t),
+						Pbind(\instrument, \bird, \dur, tadd, \freq, n2*2, \amp, ampl*2, \sustain, tadd),
                         if (tadd > 0.3) {
-						Pbind(\instrument, \kalimba, \freq, n2*2, \amp, ampl * 12, \rel, t2, \dur, t2)},
-						if (tadd > 0.5) {
-					Pbind(\instrument, \bell, \t60, tadd, \fs, n2, \pitchy, 1, \dur, t, \amp, ampl)},
+						  Pbind(\instrument, \kalimba, \freq, n1*2, \amp, ampl * 12, \rel, t2, \dur, t2)},
+						if (tadd > 0.6666) {
+					      Pbind(\instrument, \bell, \t60, tadd, \fs, n2, \pitchy, 1, \dur, t, \amp, ampl)},
 						Pbind(\instrument, \risset, \freq, n1*2, \amp, ampl, \rel, t , \dur, t),
 
 					//
