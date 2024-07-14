@@ -25,13 +25,19 @@ s.waitForBoot({
 			\Y : "YFX[+Y][-Y]XFY",
 
 	));
+	//Scale.directory;
+	//\up : 58.midicps * sc.ratios,
+	//\down: 58.midicps * sc.ratios.reverse,
+
+    var sc = Scale.yu;
 
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
 			\acceptablenotes : 48.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2, 2*16/15, 2*5/4, 2*4/3, 2*3/2],
+			//\acceptablenotes: 53.midicps * sc.ratios,
 
-            \patternnotes : [261,245],
+            \patternnotes : 48.midicps * sc.ratios,
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
             \transpose : 0,
 			\counter : 0,
@@ -50,7 +56,7 @@ s.waitForBoot({
             '+': [{ | glob, loc |
                 // extend list notes being played (using some randomness :) )
                 glob[\patternnotes] = glob[\patternnotes].add(glob[\acceptablenotes].choose);
-				glob[\patternnotes] = glob[\patternnotes].add(glob[\acceptablenotes].choose);
+				//glob[\patternnotes] = glob[\patternnotes].add(glob[\acceptablenotes].choose);
 				// limit pattern to 8 notes.
 				if (glob[\patternnotes].size > 9) {
                     glob[\patternnotes].pop;
@@ -93,11 +99,26 @@ s.waitForBoot({
 
     var interp2 = interp.deepCopy();
 
+	SynthDef(\risset, {|out = 0, pan = 0, freq = 400, amp = 0.05, att = 0.005, rel = 1, gate = 1,vibFreq=7, vibAmp=0.1,vibAdd=0.5|
+		var amps = #[1, 0.67, 1, 1.8, 2.67, 1.67, 1.46, 1.33, 1.33, 1, 1.33];
+		var durs = #[1, 0.9, 0.65, 0.55, 0.325, 0.35, 0.25, 0.2, 0.15, 0.1, 0.075];
+		var frqs = #[0.56, 0.56, 0.92, 0.92, 1.19, 1.7, 2, 2.74, 3, 3.76, 4.07];
+		var dets = #[0, 1, 0, 1.7, 0, 0, 0, 0, 0, 0, 0];
+		var doneActionEnv = EnvGen.ar(Env.linen(0, att+rel, 0), gate, doneAction: 2);
+		var src = Mix.fill(11, {|i|
+			var env = EnvGen.ar(Env.perc(att, rel * durs[i], amps[i], att.explin(0.005, 4, -4.5, 0)), gate);
+			SinOsc.ar(freq*frqs[i] + dets[i], 0, amp*env);
+		});
+        src = src * SinOsc.kr(vibFreq*15, mul:vibAmp, add:vibAdd);
+		src = src * doneActionEnv * 0.5; // make sure it releases node after the end.
+	    Out.ar(out, Pan2.ar(src, pan));
+	}).add;
+
     SynthDef(\kalimba, {
-        |out = 0, freq = 440, amp = 2, mix = 0.2|
+        |out = 0, freq = 440, amp = 0.1, mix = 0.1, rel=1.4|
         var snd, click;
         // Basic tone is a SinOsc
-        snd = SinOsc.ar(freq) * EnvGen.ar(Env.perc(0.03, Rand(0.7, 1.4), 1, -7), doneAction: 2);
+        snd = SinOsc.ar(freq) * EnvGen.ar(Env.perc(0.03, rel, 1, -7), doneAction: 2);
         snd = HPF.ar( LPF.ar(snd, 380), 120);
         // The "clicking" sounds are modeled with a bank of resonators excited by enveloped white noise
         click = DynKlank.ar(`[
@@ -106,11 +127,12 @@ s.waitForBoot({
             [240*ExpRand(0.97, 1.02), 2020*ExpRand(0.97, 1.02), 3151*ExpRand(0.97, 1.02)],
             [-9, 0, -5].dbamp,
             [0.8, 0.07, 0.08]
-        ], BPF.ar(PinkNoise.ar, 6500, 0.1) * EnvGen.ar(Env.perc(0.001, 0.01))) * 0.1;
+        ], BPF.ar(PinkNoise.ar, 6500, 0.1) * EnvGen.ar(Env.perc(0.001, 0.01))) * 0.6;
         snd = (snd*mix) + (click*(1-mix));
         snd = Mix( snd );
         Out.ar(out, Pan2.ar(snd, 0, amp));
     }).add;
+
 
 	SynthDef(\blips, {arg out = 0, freq = 440, numharm = 11, att = 0.01, rel = 0.7, amp = 1, pan = 0.3;
 		var snd, env;
@@ -153,8 +175,9 @@ s.waitForBoot({
 		var p, q, pattern;
 
 
-		Pbindef(\r, \instrument, \sc303, \amp, 0.08, \sustain, 0.9);
-		Pbindef(\p, \instrument, \kalimba, \amp, 1.1);
+		//Pbindef(\r, \instrument, \blips, \amp, 0.08, \sustain, 0.3);
+		Pbindef(\r, \instrument, \risset, \amp, 0.07, \sustain, 0.3);
+		Pbindef(\p, \instrument, \kalimba, \amp, 0.6);
 		Pbindef(\q, \instrument, \plucking, \amp, 0.1, \rel, 1);
 		//Pbindef(\p, \instrument, \plucking, \amp, 0.1);
 		//q = Pbindef(\q, \instrument, \blips);
@@ -165,7 +188,7 @@ s.waitForBoot({
             var transposedpattern;
             var trans;
             var trans2;
-			var n1, n2, l, l2, t, t2;
+			var n1, n2, l, l2, t, t2, ampl;
 
             ("*** PART" + (idx+1) + "OF" + sz + "***").postln;
             interp.step(idx);
@@ -183,12 +206,16 @@ s.waitForBoot({
 				l2 = interp2.globalState()[\lag].debug("lag2");
 				t = interp.globalState()[\tempo].debug("tempo");
                 t2 = interp2.globalState()[\tempo].debug("tempo2");
-
+				ampl = 0.06;
+				if (trans >1 ) { ampl = 0.05 };
+				if (trans >1.5 ) { ampl = 0.04 };
+				if (trans >2 ) { ampl = 0.03 };
 				pattern =
 					Ppar([
-						Pbindef(\q, \dur, t, \freq, n1, \legato, l, \transpose, trans + 1),
-						Pbindef(\p, \dur, t2, \freq, n2, \legato, l, \transpose, trans2 + 3),
-					    Pbindef(\r, \dur, t2, \freq, n1, \legato, l, \transpose, trans + 1)
+					if (t < 0.8) {
+						Pbindef(\q, \dur, t, \freq, n1, \legato, l,  \amp, ampl + 0.02, \rel, t + t2)},
+						Pbindef(\p, \dur, t2, \freq, n2*2, \legato, l, \rel, t2),
+					    Pbindef(\r, \dur, t2, \freq, n2, \amp, ampl+ 0.02, \rel, t2+t)
 
 				]);
 

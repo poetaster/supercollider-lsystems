@@ -14,7 +14,6 @@ D 15/8, 8/5, 3/2,, 4/3, 5/4, 16/15, 1 2*15/8
 	// below is archytas enharmonic
     // 28/7, 36/35, 5/4, 4/3, 6/5,10/9
     // 28/7, 36/35, 5/4, 4/3, 6/5,10/9
-	// below is archytas enharmonic
 
 */
 
@@ -47,7 +46,7 @@ s.waitForBoot({
         actions:(
             // whenever you encounter an F, transpose tempo
             'F' : [{ | glob, loc |
-				glob[\tempo] = [0.2, 0.4, 0.2].choose;
+				glob[\tempo] = [0.3, 0.6, 0.9, 0.3, 0.1].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -56,7 +55,7 @@ s.waitForBoot({
                 // extend list notes being played (using some randomness :) )
                 glob[\patternnotes] = glob[\patternnotes].add(glob[\up].choose);
 				// limit pattern to 8 notes.
-				if (glob[\patternnotes].size > 4) {
+				if (glob[\patternnotes].size > 9) {
 
                     glob[\patternnotes].pop;
 					//glob[\patternnotes] = glob[\patternnotes].add(\rest);
@@ -88,8 +87,8 @@ s.waitForBoot({
             'Y' : [{ | glob, loc |
 				glob[\lag] = (glob[\lag] - 0.1).clip(0,2);
 				//glob[\patternnotes] = glob[\patternnotes].add(glob[\customnotes].choose.debug("add new custom"));
-				glob[\tempo] = [0.8, 0.2, 0.4].choose;
-				glob[\transpose] = [1,2,3].choose;
+				//glob[\tempo] = [0.6, 0.3, 0.1, 0.3].choose;
+				glob[\transpose] = [1,2,1/2].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -181,7 +180,8 @@ s.waitForBoot({
 
     s.sync;
 	// up the rate a bit
-	TempoClock.default = TempoClock.new(1);
+
+	TempoClock.default = TempoClock.new( (1+ sqrt(5))/2);
 
 	fork {
         var skipfirstidx = 0; // increase to skip more steps at the beginning
@@ -222,15 +222,16 @@ s.waitForBoot({
 				// this should be a curve.
 				ampl = 0.04;
 				if (trans >1 ) { ampl = 0.03 };
-				if (trans >1.5 ) { ampl = 0.02 };
-				if (trans >2 ) { ampl = 0.01 };
+				if (trans >1.5 ) { ampl = 0.03 };
+				if (trans >2 ) { ampl = 0.02 };
 
 				// we're mixing bind and bindef case, well, bell
 				pattern = Ppar([
-					    Pbind(\instrument, \bell, \t60, tadd, \fs, n1, \pitchy, 1, \dur, tadd, \amp, ampl),
-					if (tadd > 0.6 ) {
-						Pbindef(\r, \dur, t, \freq, n1, \rel, t, \amp, ampl)};,
-					    Pbindef(\p, \dur, t2, \freq, n2, \rel, t2, \amp, (ampl*11)+t2),
+					if (tadd > 0.6) {
+						Pbind(\instrument, \bell, \t60, tadd, \fs, n1, \pitchy, 1, \dur, t, \amp, ampl)},
+					if (tadd > 0.2 ) {
+						Pbindef(\r, \dur, tadd, \freq, n2, \rel, tadd, \amp, ampl*2)};,
+					    Pbindef(\p, \dur, t2, \freq, n1, \rel, t2, \amp, (ampl*9)+t2),
 
 				]);
 

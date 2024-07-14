@@ -20,7 +20,7 @@ s.waitForBoot({
     var player;
 
     var lsys = LSystem(
-        iterations:3,
+        iterations:4,
         axiom:"A",
         constants:Set[],
         rules:(
@@ -33,9 +33,9 @@ s.waitForBoot({
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\patternnotes : 48.midicps * [2*9/5, 1, 16/15, 4/3],
-			\up : 48.midicps * [2*9/5, 1, 16/15, 6/5, 4/3, 3/2, 8/5],
-			\dn : 48.midicps * [9/5, 8/5, 3/2, 4/3, 6/5, 16/15, 1],
+			\patternnotes : 54.midicps * [2*9/5, 1, 16/15, 4/3],
+			\up : 54.midicps * [2*9/5, 1, 16/15, 6/5, 4/3, 3/2, 8/5],
+			\dn : 54.midicps * [9/5, 8/5, 3/2, 4/3, 6/5, 16/15, 1],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
             \transpose : 1,
 			\lag: 0.0,
@@ -45,7 +45,7 @@ s.waitForBoot({
         actions:(
             // whenever you encounter an F, extend the list of played notes
             'F' : [{ | glob, loc |
-				glob[\transpose] = [1, 1/2, 2, 1].choose;
+				glob[\transpose] = [1, 1/2, 2, 1, 1/2].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -54,7 +54,7 @@ s.waitForBoot({
                 // extend list notes being played (using some randomness :) )
                 glob[\patternnotes] = glob[\patternnotes].add(glob[\up].choose);
 				// limit pattern to 8 notes.
-				if (glob[\patternnotes].size > 4) {
+				if (glob[\patternnotes].size > 9) {
                     glob[\patternnotes].pop;
                 };
                 // always return state at the end
@@ -65,7 +65,7 @@ s.waitForBoot({
                 //"remove first note".postln;
 				// limit pattern to 8 notes.
 				glob[\patternnotes] = glob[\patternnotes].addFirst(glob[\dn].choose);
-				if (glob[\patternnotes].size > 1) {
+				if (glob[\patternnotes].size > 9) {
                     glob[\patternnotes].pop;
                 };
 
@@ -74,7 +74,7 @@ s.waitForBoot({
             }, nil],
             // whenever you encounter an X, remove first note from the played notes
             'X' : [{ | glob, loc |
-                glob[\tempo] = [0.8, 0.4, 0.2, 0.4].choose;
+                glob[\tempo] = [0.8, 0.4, 0.2].choose;
 				glob[\lag] = (glob[\lag] + 0.3).clip(0,2);
                 // always return state at the end
                 [glob, loc];
@@ -138,6 +138,33 @@ s.waitForBoot({
 			coef: coef);
 		Out.ar(0, [snd, snd]);
 	}).add;
+	SynthDef(\mallet,{arg in=0,out=0,freq=440,amp=1,rel=1,p=0;
+
+		var sig=Array.fill(3,{|n| SinOsc.ar(freq+(n*0.01),mul:amp*0.3)}).sum;
+		var env=EnvGen.kr(Env.perc(0.001,rel),gate:1,doneAction:2);
+		sig=sig*0.8+CombC.ar(sig,0.5,0.3,0.5,0.2);
+		Out.ar(out,Pan2.ar(sig*env,pos:p));
+	};
+	).add;
+	SynthDef(\bell, {
+		|fs=1, t60=0.5, pitchy=1, amp=0.05, gate=1,dur=0.5|
+		var sig, exciter;
+		//exciter = Impulse.ar(0);
+		exciter = WhiteNoise.ar() * EnvGen.ar(Env.perc(0.001, 0.05), gate) * 0.25;
+		sig = Klank.ar(
+			`[
+				[1, 2, 2.803, 3.871, 5.074, 7.81, 10.948, 14.421],   // freqs
+				[1, 0.044, 0.891, 0.0891, 0.794, 0.1, 0.281, 0.079], // amplitudes
+				[1, 0.205, 1, 0.196, 0.339, 0.047, 0.058, 0.047]*t60     // ring times
+			],
+			exciter,
+			freqscale:fs*pitchy);
+		//sig = FreeVerb.ar(sig) * amp;
+		sig=sig*0.8+CombC.ar(sig,0.5,0.3,0.5,0.2)*amp;
+		DetectSilence.ar(sig, 0.001, dur, doneAction:2);
+		Out.ar(0, [sig,sig]);
+	}).add;
+
 
     s.sync;
     // up the rate a bit
@@ -149,9 +176,10 @@ s.waitForBoot({
 		var p, q, pattern;
 
 		Pbindef(\p, \instrument, \plucking, \amp, 0.07, \decay, 2);
-		Pbindef(\q, \instrument, \kalimba, \amp, 0.4, \rel, 1.4);
-		Pbindef(\r, \instrument, \bird, \amp, 0.025, \rel, 0.2);
+		Pbindef(\k, \instrument, \kalimba, \amp, 0.4, \rel, 1.4);
+		Pbindef(\r, \instrument, \bird, \amp, 0.05, \rel, 0.2);
 
+        Pbindef(\q, \instrument, \mallet, \amp, 0.2, \rel, 1);
         lsys.getCalculatedString.do({
             | chr, idx |
 
@@ -179,12 +207,15 @@ s.waitForBoot({
 				ts = t + t2;
 
 				ampl = 0.06;
-				if (trans2 >1.5 ) { ampl = 0.05 };
+				//if (trans2 >1.5 ) { ampl = 0.05 };
 
 				pattern = Ppar([
-					Pbindef(\p, \dur, t2, \freq, n2, \legato, l, \decay, ts + t2, \amp, ampl ),
-					Pbindef(\q, \dur, t, \freq, n1, \legato, l,  \rel, ts ),
-					Pbindef(\r, \dur, t, \freq, n1, \legato, l,  \rel, ts + t, \pan, [t, (0 - t) ].choose )
+					if (t2 > 0.6) {
+					  Pbindef(\k, \dur, t2, \freq, n2, \legato, l, \decay, ts + t2, \amp, ampl )},
+					//if (ts > 0.7) {
+					//Pbind(\instrument, \bell, \t60, ts, \fs, n1*3/4, \pitchy, 1, \dur, ts, \amp, ampl)},
+					Pbindef(\q, \dur, ts, \freq, n1, \legato, l,  \rel, ts ),
+					Pbindef(\r, \dur, t2, \freq, n2, \legato, l,  \rel, t2 , \pan, [t2, (0 - t2) ].choose )
 				]);
 
                 if (player.notNil) { player.stop; };

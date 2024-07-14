@@ -6,14 +6,19 @@ axiom: X
 rules:
  X => X+YF++YF-FX--FXFX-YF+
  Y => -FX+YFYF++YF+FX--FX-Y
+
+Bilaharis:
+[1, 9/8, 5/4, 3/2, 27/16, 2, 15/18, 27/16, 3/2, 4/3, 5/4, 9/8, 1],
+Slendro (indonisia)
+1/1, 8/7, 4/3, 14/9, 16/9, 2/1
 */
 
 (
 s.waitForBoot({
     var player;
-	var sc = Scale.pelog;
+	var sc = Scale.pelog; // not used
     var lsys = LSystem(
-        iterations:2,
+        iterations:3,
         axiom:"X",
         constants:Set[],
         rules:(
@@ -27,6 +32,7 @@ s.waitForBoot({
         globalstate:(
 			//\acceptablenotes : 60.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8],
 			\acceptablenotes : 60.midicps * [1, 9/8, 5/4, 3/2, 27/16, 2, 15/18, 27/16, 3/2, 4/3, 5/4, 9/8, 1],
+			//\acceptablenotes : 60.midicps * [1/1, 8/7, 4/3, 14/9, 16/9, 2/1],
 			// this is the method using Scale as defined above.
 			//\acceptablenotes : 60.midicps * sc.ratios,
 			\patternnotes : 60.midicps * [1, 5/4, 3/2],
@@ -248,13 +254,13 @@ SynthDef(\fatsaw,
 				if (trans >1.5 ) { ampl = 0.02 };
 				if (trans >2 ) { ampl = 0.01 };
 				pattern = Ppar([
-					//if (trans2 > 0.5) {
-					//	Pbind(\instrument, \plucking, \dur, t2, \freq, n2, \amp, ampl+0.02, \rel, t2)},
+					if (trans2 > 1.0) {
+						Pbind(\instrument, \plucking, \dur, t2, \freq, n2, \amp, ampl, \rel, t2)},
 					if (trans < 2.0) {
 						Pbind(\instrument, \bell, \t60, tadd, \fs, n1, \pitchy, 1, \dur, t, \amp, ampl)},
 
-						Pbind(\instrument, \bird, \freq, n2, \amp, ampl+0.02, \rel, t2, \dur, t2),
-						//Pbind(\instrument, \kalimba, \freq, n2, \amp, ampl * 15, \rel, t2, \dur, t2),
+						Pbind(\instrument, \bird, \freq, n1, \amp, ampl+0.05, \rel, t*10, \dur, t),
+						Pbind(\instrument, \kalimba, \freq, n2, \amp, ampl * 10, \rel, t2, \dur, t2),
 
 					//
 				]);
@@ -262,6 +268,7 @@ SynthDef(\fatsaw,
                 if (player.notNil) { player.stop; };
 
 				player = pattern.play();
+
 
 				1.wait;
                 if (idx == (sz-1)) {
@@ -274,5 +281,8 @@ SynthDef(\fatsaw,
 });
 )
 
+(
+s.scope;
+)
 
 

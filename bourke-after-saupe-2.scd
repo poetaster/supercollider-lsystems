@@ -7,14 +7,23 @@ rules:
   X -> -W[+X]Z
   Y -> YZ
   Z -> [-FcFF][+FdFF]F
-
-
+\ bayati: Bayati
+\ bhairav: Bhairav
+\ farahfaza
+\ ajam
+\ ahirbhairav
+\ nikriz;
+\ nawaAthar
+		var frqs = #[0.56, 0.56, 0.92, 0.92, 1.19, 1.7, 2, 2.74, 3, 3.76, 4.07];
 */
-
+Scale.directory
+a = Scale.nikriz;
+Pbind(\scale, a, \degree, Pseq((0..7) ++ (6..0) ++ [\rest], 1), \dur, 0.25).play;
 
 (
 s.waitForBoot({
     var player;
+	var sc = Scale.harmonicMinor;
     var lsys = LSystem(
         iterations:3,
         axiom:"VZFFF",
@@ -30,12 +39,13 @@ s.waitForBoot({
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			\acceptablenotes : 60.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8, 2, 2*16/15, 2*5/4, 2*4/3, 2*3/2];,
+			//\up : 60.midicps * sc.ratios,
+			//\down: 60.midicps * sc.ratios.reverse,
 			\up : 60.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8],
 			\down : 60.midicps * [2, 2*16/15, 2*5/4, 2*4/3, 2*3/2],
 			//\pup : 60.midicps * [1, 9/8, 5/4, 3/2, 27/16, 2],
 			//\pdn : 60.midicps * [2, 27/16, 3/2, 4/3, 5/4, 9/8, 1],
-			\pnotes : 60.midicps * [1, 5/4],
+			\pnotes : 60.midicps * sc.ratios, //60.midicps * [1, 5/4],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
             \transpose : 1,
 			\counter : 0,
@@ -47,7 +57,7 @@ s.waitForBoot({
             // whenever you encounter an F, extend the list of played notes
             'F' : [{ | glob, loc |
 			    //glob[\tempo] = [0.8, 0.2, 0.4].choose;
-				glob[\transpose] = [1,2].choose;
+				glob[\transpose] = [1/2,1,2].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -59,7 +69,7 @@ s.waitForBoot({
 				if (glob[\pnotes].size > 8) {
                     glob[\pnotes].pop;
                 };
-				glob[\tempo] = (glob[\tempo] / 2).clip(0.2, 0.4);
+
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -71,7 +81,6 @@ s.waitForBoot({
 				if (glob[\pnotes].size > 1) {
                     glob[\pnotes].pop;
                 };
-				glob[\tempo] = (glob[\tempo] * 2).clip(0.2, 0.4);
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -79,6 +88,7 @@ s.waitForBoot({
             'X' : [{ | glob, loc |
                 //"transpose down".postln;
 				glob[\lag] = (glob[\lag] + 0.5).clip(0,2);
+				glob[\tempo] = [3/8, 1/8, 1/4, 1/2].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -87,8 +97,9 @@ s.waitForBoot({
             'Y' : [{ | glob, loc |
 				glob[\lag] = (glob[\lag] - 0.3).clip(0,2);
 				//glob[\patternnotes] = glob[\patternnotes].add(glob[\customnotes].choose.debug("add new custom"));
-				//glob[\tempo] = [0.4, 0.2, 0.8].choose;
-				glob[\transpose] = [1,3/4,2].choose;
+				//glob[\tempo] = [0.4, 0.2, 0.8,10.0].choose;
+				//glob[\tempo] = (glob[\tempo] / 2).clip(1/8, 1/4, 1/2);
+				glob[\tempo] = [1/2,3/4,1].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -97,61 +108,6 @@ s.waitForBoot({
 
     var interp2 = interp.deepCopy();
 
-
-	SynthDef("waveguideFlute", { arg scl = 0.2, freq = 440, ipress = 0.9, ibreath = 0.06, ifeedbk1 = 0.4, ifeedbk2 = 0.4, dur = 0.5, gate = 0.5, amp = 1;
-
-		var kenv1, kenv2, kenvibr, kvibr, sr, cr, block;
-		var poly, signalOut, ifqc;
-		var aflow1, asum1, asum2, afqc, atemp1, ax, apoly, asum3, avalue, atemp2, aflute1;
-		var fdbckArray;
-
-		sr = SampleRate.ir;
-		cr = ControlRate.ir;
-		block = cr.reciprocal;
-
-		ifqc = freq;
-
-		// noise envelope
-		kenv1 = EnvGen.kr(Env.new(
-			[ 0.0, 1.1 * ipress, ipress, ipress, 0.0 ], [ 0.06, 0.2, dur - 0.46, 0.2 ], 'linear' )
-		);
-		// overall envelope
-		kenv2 = EnvGen.kr(Env.new(
-			[ 0.0, amp, amp, 0.0 ], [ 0.01, dur - 0.02, 0.1 ], 'linear' ), doneAction: 2
-		);
-		// vibrato envelope
-		kenvibr = EnvGen.kr(Env.new( [ 0.0, 0.0, 1, 1, 0.0 ], [ 0.5, 0.5, dur - 1.5, 0.5 ], 'linear') );
-
-		// create air flow and vibrato
-		aflow1 = LFClipNoise.ar( sr, kenv1 );
-		kvibr = SinOsc.ar( 5, 0, 0.1 * kenvibr );
-
-		asum1 = ( ibreath * aflow1 ) + kenv1 + kvibr;
-		afqc = ifqc.reciprocal - ( asum1/20000 ) - ( 9/sr ) + ( ifqc/12000000 ) - block;
-
-		fdbckArray = LocalIn.ar( 1 );
-
-		aflute1 = fdbckArray;
-		asum2 = asum1 + ( aflute1 * ifeedbk1 );
-
-		//ax = DelayL.ar( asum2, ifqc.reciprocal * 0.5, afqc * 0.5 );
-		ax = DelayC.ar( asum2, ifqc.reciprocal - block * 0.5, afqc * 0.5 - ( asum1/ifqc/cr ) + 0.001 );
-
-		apoly = ax - ( ax.cubed );
-		asum3 = apoly + ( aflute1 * ifeedbk2 );
-		avalue = LPF.ar( asum3, 2000 );
-
-		aflute1 = DelayC.ar( avalue, ifqc.reciprocal - block, afqc );
-
-		fdbckArray = [ aflute1 ];
-
-		LocalOut.ar( fdbckArray );
-
-		signalOut = avalue;
-
-		OffsetOut.ar( 0, [ signalOut * kenv2, signalOut * kenv2 ] );
-
-	}).add;
 
     SynthDef(\kalimba, {
         |out = 0, freq = 440, amp = 0.1, mix = 0.1, rel=1.4|
@@ -198,7 +154,7 @@ s.waitForBoot({
 	};
 	).add;
 
-	SynthDef(\risset, {|out = 0, pan = 0, freq = 440, amp = 0.05, att = 0.005, rel = 1, gate = 1,vibFreq=7, vibAmp=0.1,vibAdd=0.5|
+	SynthDef(\risset, {|out = 0, pan = 0, freq = 450, amp = 0.05, att = 0.005, rel = 1, gate = 1,vibFreq=7, vibAmp=0.1,vibAdd=0.5|
 		var amps = #[1, 0.67, 1, 1.8, 2.67, 1.67, 1.46, 1.33, 1.33, 1, 1.33];
 		var durs = #[1, 0.9, 0.65, 0.55, 0.325, 0.35, 0.25, 0.2, 0.15, 0.1, 0.075];
 		var frqs = #[0.56, 0.56, 0.92, 0.92, 1.19, 1.7, 2, 2.74, 3, 3.76, 4.07];
@@ -217,16 +173,16 @@ s.waitForBoot({
 
     s.sync;
 
-	TempoClock.default = TempoClock.new(1.25);
+	TempoClock.default = TempoClock.new(1);
 
 	fork {
         var skipfirstidx = 0; // increase to skip more steps at the beginning
         var sz = lsys.getCalculatedString.size();
 		var p, q, pattern;
 
-		Pbindef(\r, \instrument, \risset, \amp, 0.06, \rel, 0.8);
+		Pbindef(\r, \instrument, \flute, \amp, 0.1, \rel, 0.8);
 		Pbindef(\p, \instrument, \kalimba, \amp, 0.9);
-		Pbindef(\q, \instrument, \mallet, \amp, 0.1, \rel, 1);
+		Pbindef(\q, \instrument, \mallet, \amp, 0.2, \rel, 1);
 
         lsys.getCalculatedString.do({
             | chr, idx |
@@ -253,13 +209,13 @@ s.waitForBoot({
 				l2 = interp2.globalState()[\lag].debug("lag2");
 				t = interp.globalState()[\tempo].debug("tempo");
                 t2 = interp2.globalState()[\tempo].debug("tempo2");
-				tadd = t + t2;
-                ampl = 0.06;
-				if (t < 0.4 ){ampl = 0.05;};
+				tadd = (t + t2).debug("tadd");
+                ampl = 0.1;
+				if (t < 0.4 ){ampl = 0.07;};
 				pattern = Ppar([
-					if (t > 0.2) { Pbindef(\r,  \dur, t, \freq, n2, \legato, l , \rel, t + 0.4)};,
-					    Pbindef(\p, \dur, t, \freq, n1, \legato, l, \rel, t  ),
-					if (t < 0.4) {Pbindef(\q, \dur, t*2, \freq, n2, \legato, l, \rel, t*2  )};
+					if (tadd > 0.3) { Pbindef(\r,  \dur, t, \freq, n1, \legato, l , \rel, tadd + t2)};,
+					    Pbindef(\p, \dur, t, \freq, n2, \legato, l, \rel, tadd  ),
+					if (tadd < 1.5) {Pbindef(\q, \dur, t2, \freq, n1, \legato, l, \rel, tadd , \amp , ampl )};
 				]);
 
                 if (player.notNil) { player.stop; };

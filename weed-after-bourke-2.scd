@@ -150,8 +150,8 @@ s.waitForBoot({
 
 
 		Pbindef(\p, \instrument, \kalimba, \amp, 0.3);
-		Pbindef(\q, \instrument, \plucking, \amp, 0.04, \decay, 2);
-		Pbindef(\r, \instrument, \blips, \amp, 0.3, \rel, 0.9);
+		Pbindef(\q, \instrument, \plucking, \amp, 0.06, \decay, 2);
+		Pbindef(\r, \instrument, \blips, \amp, 0.2, \rel, 0.9);
 
 		//Pbindef(\p, \instrument, \plucking, \amp, 0.1);
 		//q = Pbindef(\q, \instrument, \blips);
@@ -187,9 +187,10 @@ s.waitForBoot({
 				harms = (7 + trans + trans2 + trel ).clip(6,20).debug("harms");
 
 				pattern =Ppar([
-					Pbindef(\p, \dur, t, \freq, n2, \legato, l, \rel, trel + t),
-					Pbindef(\q, \dur, t2, \freq, n2, \legato, l, \decay, trel*2),
-					Pbindef(\r, \dur, t2*2, \freq, n1, \legato, l, \rel, trel, \harms, harms)
+					Pbindef(\p, \dur, t2, \freq, n2, \legato, l, \rel, trel + t2),
+					if (t2 > 0.2) {
+						Pbindef(\q, \dur, trel, \freq, n2, \legato, l, \decay, trel+1)},
+					Pbindef(\r, \dur, t*2, \freq, n1, \legato, l, \rel, trel, \harms, harms)
 
 				]);
 

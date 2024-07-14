@@ -17,7 +17,7 @@ s.waitForBoot({
     var player;
 
     var lsys = LSystem(
-        iterations:2,
+        iterations:3,
         axiom:"Y",
         constants:Set[],
         rules:(
@@ -25,15 +25,16 @@ s.waitForBoot({
 			\Y : "YFX[+Y][-Y]XFY",
 
 	));
-    var sc = Scale.nawaAthar;
+	var sc = Scale.harmonicMinor;
+
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
-			//\up : 58.midicps * sc.ratios,
-			//\down: 58.midicps * sc.ratios.reverse,
-			\up : 58.midicps *  [1, 16/15, 4/3, 3/2, 8/5],
-			\down : 58.midicps * [9/5, 3/2, 4/3, 6/5, 1],
-            \patternnotes : 58.midicps * [1, 4/3, 8/5],
+			\up : 58.midicps * sc.ratios,
+			\down: 58.midicps * sc.ratios.reverse,
+			//\up : 58.midicps *  [1, 16/15, 4/3, 3/2, 8/5],
+			//\down : 58.midicps * [9/5, 3/2, 4/3, 6/5, 1],
+            \patternnotes : 58.midicps * sc.ratios, //[1, 4/3, 8/5],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
             \transpose : 1,
 			\counter : 0,
@@ -160,9 +161,9 @@ s.waitForBoot({
 // for some reason pbindef does not work with bell.
 		Pbindef(\r, \instrument, \bell, \t60, 0.5, \pitchy, 1, \dur, 0.4, \amp, 0.05);
 		Pbindef(\p, \instrument, \kalimba, \amp, 0.5);
-		Pbindef(\q, \instrument, \plucking, \amp, 0.1, \rel, 1);
+		//Pbindef(\q, \instrument, \plucking, \amp, 0.1, \rel, 1);
 		//Pbindef(\p, \instrument, \plucking, \amp, 0.1);
-		//q = Pbindef(\q, \instrument, \blips);
+		Pbindef(\q, \instrument, \blips);
 
         lsys.getCalculatedString.do({
             | chr, idx |
@@ -196,6 +197,7 @@ s.waitForBoot({
 				pattern = Ppar([
 					    Pbind(\instrument, \bell, \t60, tadd, \fs, n1, \pitchy, 1, \dur, tadd, \amp, ampl),
 						Pbind(\instrument, \kalimba, \freq, n2, \amp, 0.35, \rel, t2, \dur, t2),
+					    Pbind(\instrument, \blips, \freq, n1, \amp, 0.25, \rel, t, \dur, t),
 
 					//
 				]);

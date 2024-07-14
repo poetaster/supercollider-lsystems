@@ -26,7 +26,7 @@ Scale.nawaAthar;
 (
 s.waitForBoot({
     var player;
-	var sc = Scale.enigmatic;
+
     var lsys = LSystem(
         iterations:2,
         axiom:"FX",
@@ -37,14 +37,16 @@ s.waitForBoot({
 
 	));
 
+	var sc = Scale.farahfaza;
+
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
 			//\acceptablenotes : 60.midicps * [1, 16/15, 5/4, 4/3, 3/2, 8/5, 15/8],
-			\acceptablenotes : 60.midicps * [1, 9/8, 5/4, 3/2, 27/16, 2, 15/18, 27/16, 3/2, 4/3, 5/4, 9/8, 1],
+			//\acceptablenotes : 60.midicps * [1, 9/8, 5/4, 3/2, 27/16, 2, 15/18, 27/16, 3/2, 4/3, 5/4, 9/8, 1],
 			// this is the method using Scale as defined above.
-			//\acceptablenotes : 60.midicps * sc.ratios,
-			\patternnotes : 60.midicps * [1, 5/4, 27/16],
+			\acceptablenotes : 50.midicps * sc.ratios,
+			\patternnotes : 50.midicps * sc.ratios, //[1, 5/4, 27/16, 2],
 			\customnotes: ["c3_16@numharm[12]","g-3_8@numharm[10]"], // not used.
             \transpose : 1,
 			\counter : 0,
@@ -84,7 +86,7 @@ s.waitForBoot({
             // whenever you encounter an X, remove first note from the played notes
             'X' : [{ | glob, loc |
                 //"transpose down".postln;
-                glob[\tempo] = [0.8, 0.2, 0.4].choose;
+                glob[\tempo] = [0.25,0.50, 0.75].choose;
 				glob[\lag] = (glob[\lag] + 0.1).clip(0,1);
                 // always return state at the end
                 [glob, loc];
@@ -94,7 +96,7 @@ s.waitForBoot({
             'Y' : [{ | glob, loc |
 				glob[\lag] = (glob[\lag] - 0.1).clip(0,1);
 				//glob[\patternnotes] = glob[\patternnotes].add(glob[\customnotes].choose.debug("add new custom"));
-				glob[\tempo] = [0.4, 0.2].choose;
+				glob[\tempo] = [0.125, 0.25,0.50].choose;
                 // always return state at the end
                 [glob, loc];
             }, nil],
@@ -156,11 +158,20 @@ s.waitForBoot({
 		DetectSilence.ar(sig, 0.001, 0.5, doneAction:2);
 		Out.ar(0, sig!2);
 	}).add;
+	SynthDef(\flute, {
+		| out = 0, freq = 440, amp = 1.0, a = 0.1, r = 0.1|
+		//var fmod = 1; // clean
+		//var fmod = LFCub.kr(freq:1/12).range(1, LFNoise2.kr(freq:12.0).range(1,1.1)); // tone deaf flute
+		var fmod = LFCub.kr(freq:1/12).range(1, LFNoise2.kr(freq:12.0).range(1,1.02)); // flute-like sound
+		var env = EnvGen.ar(Env.perc(a, r), levelScale:0.5, doneAction:2);
+		var snd = SinOsc.ar(freq * fmod)!2;
+		Out.ar(bus:out, channelsArray:(env*(amp*snd).tanh));
+	}).add;
 
     s.sync;
 
 	// up the rate a bit
-	TempoClock.default = TempoClock.new(1);
+	TempoClock.default = TempoClock.new(1.25);
 
 	fork {
         var skipfirstidx = 0; // increase to skip more steps at the beginning
@@ -201,12 +212,13 @@ s.waitForBoot({
                 t2 = interp2.globalState()[\tempo].debug("tempo2");
 				tadd = t + t2;
 				ampl = 0.04;
-				if (trans >1 ) { ampl = 0.04 };
-				if (trans >1.5 ) { ampl = 0.03 };
-				if (trans >2 ) { ampl = 0.02 };
+				//if (trans >1 ) { ampl = 0.04 };
+				//if (trans >1.5 ) { ampl = 0.03 };
+				//if (trans >2 ) { ampl = 0.02 };
 				pattern = Ppar([
-					    Pbind(\instrument, \plucking, \dur, t, \freq, n2, \amp, ampl+0.05, \decay, tadd),
-					    Pbind(\instrument, \bell, \t60, tadd, \fs, n1, \pitchy, 1, \dur, t2, \amp, ampl),
+					if (t > 0.25) {
+						Pbind(\instrument, \flute, \dur, tadd, \freq, n2*2, \amp, ampl+0.03, \decay, tadd)},
+					    Pbind(\instrument, \bell, \t60, tadd, \fs, n1, \pitchy, 1, \dur, t, \amp, ampl),
 						Pbind(\instrument, \kalimba, \freq, n2, \amp, ampl * 15, \rel, tadd + 0.5, \dur, t2),
 
 					//

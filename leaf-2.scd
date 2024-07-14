@@ -15,7 +15,7 @@ D 2, 15/18, 27/16, 3/2, 4/3, 5/4, 9/8, 1
 s.waitForBoot({
     var player;
     var lsys = LSystem(
-        iterations:3,
+        iterations:4,
         axiom:"Y---Y",
         constants:Set[],
         rules:(
@@ -23,10 +23,17 @@ s.waitForBoot({
 			\Y : "-F+X+F-Y",
 
 	));
+	//Scale.directory;
+	//\up : 58.midicps * sc.ratios,
+	//\down: 58.midicps * sc.ratios.reverse,
 
+    var scd = Scale.yakahDesc;
+    var scu = Scale.yakah;
     var interp = LSystemInterpreter(
         lsystem:lsys,
         globalstate:(
+			//\up : 57.midicps * scu.ratios,
+	        //\down: 57.midicps * scd.ratios,
 			\up : 57.midicps * [1, 9/8, 5/4, 3/2, 27/16, 2],
 			\down : 57.midicps * [2, 15/18, 27/16, 3/2, 4/3, 5/4, 9/8, 1],
 			\pnotes : 57.midicps * [1, 9/8, 5/4],
@@ -136,11 +143,29 @@ s.waitForBoot({
 		5.do { var d; d = exprand(0.01, 1); u = SinOsc.ar(d * 300, u, rrand(0.1,1.2) * d, 1) };
 		Out.ar(out, Pan2.ar(SinOsc.ar(u + 1 * freq, 0, amp * env), pan));
 	}).add;
+	SynthDef(\bell, {
+		|fs=1, t60=1, pitchy=1, amp=0.05, gate=1, cmb=0.5|
+		var sig, exciter;
+		//exciter = Impulse.ar(0);
+		exciter = WhiteNoise.ar() * EnvGen.ar(Env.perc(0.001, 0.05), gate) * 0.25;
+		sig = Klank.ar(
+			`[
+				[1, 2, 2.803, 3.871, 5.074, 7.81, 10.948, 14.421],   // freqs
+				[1, 0.044, 0.891, 0.0891, 0.794, 0.1, 0.281, 0.079], // amplitudes
+				[1, 0.205, 1, 0.196, 0.339, 0.047, 0.058, 0.047]*t60     // ring times
+			],
+			exciter,
+			freqscale:fs*pitchy);
+		//sig = FreeVerb.ar(sig) * amp;
+		sig = sig*0.8+CombC.ar(sig,cmb,0.3,cmb,0.2) * amp;
+		DetectSilence.ar(sig, 0.001, 0.5, doneAction:2);
+		Out.ar(0, sig!2);
+	}).add;
 
     s.sync;
 
 	// up the rate a bit
-	TempoClock.default = TempoClock.new(1);
+	TempoClock.default = TempoClock.new(1.25);
 
 	fork {
         var skipfirstidx = 0; // increase to skip more steps at the beginning
@@ -148,8 +173,8 @@ s.waitForBoot({
 		var p, q, pattern;
 
 		Pbindef(\r, \instrument, \bird, \amp, 0.04, \rel, 0.2);
-		Pbindef(\p, \instrument, \kalimba, \amp, 0.9);
-		Pbindef(\q, \instrument, \plucking, \amp, 0.07, \decay, 2);
+		Pbindef(\p, \instrument, \kalimba, \amp, 0.7);
+		Pbindef(\q, \instrument, \bell, \amp, 0.07, \decay, 1.5);
 
         lsys.getCalculatedString.do({
             | chr, idx |
@@ -177,14 +202,17 @@ s.waitForBoot({
 				t = interp.globalState()[\tempo].debug("tempo");
                 t2 = interp2.globalState()[\tempo].debug("tempo2");
 				tadd = t + t2;
-				ampl = 0.07;
+				ampl = 0.06;
 				if (trans >1 ) { ampl = 0.05 };
 				if (trans >1.5 ) { ampl = 0.03 };
 				if (trans >2 ) { ampl = 0.02 };
 				pattern = Ppar([
-					    Pbind(\instrument, \plucking, \dur, t, \freq, n1, \decay, t+1, \rel, tadd, \amp, ampl ),
-					    Pbind(\instrument, \kalimba, \dur, t2, \freq, n2, \rel, tadd  + 0.5, \amp, 0.4),
-					    Pbind(\instrument, \bird, \dur, tadd, \freq, n1, \rel, tadd + t2, \amp, (t/4).clip(0.02, 0.07).postln )
+					//if (t > 0.2) {
+					//	Pbind(\instrument, \plucking, \dur, t, \freq, n1, \decay, t+1, \rel, tadd, \amp, ampl )},
+					if (trans < 2.0) {
+						Pbind(\instrument, \bell, \t60, tadd, \fs, n1, \pitchy, 1, \dur, t, \amp, ampl)},
+					    Pbind(\instrument, \kalimba, \dur, t2, \freq, n2*2, \rel, t2, \amp, ampl),
+					    Pbind(\instrument, \bird, \dur, tadd, \freq, n1, \rel, tadd + t, \amp, ampl*2 )//(t/2).clip(0.02, 0.07).postln )
 
 				]);
 
